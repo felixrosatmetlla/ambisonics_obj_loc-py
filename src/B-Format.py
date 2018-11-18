@@ -14,13 +14,19 @@ import os
 
 filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
 
-path = os.getcwd()
-path = os.path.dirname(path)
-path = os.path.join(path,'test_audios/271053__milanvdmeer__violinsingle-130-4mf-4.wav')
-print(path)
+
+
 
 
 #%%
+
+def getAudioPath(filename):
+    path = os.getcwd()
+    path = os.path.dirname(path)
+    path = os.path.join(path,'test_audios/'+ filename) 
+    return path
+    
+path = getAudioPath(filename)
 #Read audio file
 data, samplerate = sf.read(path)
 
@@ -30,14 +36,18 @@ elevation = 0
 
 amb_ord = 1
 
-norm = 'N3D'
+norm = 'FUMA'
 ch_order = 'ACN'
 
+def toAmbisonics(data,norm_fact):
+    W = data*1*norm_fact[0]
+    X = data*math.cos(azimuth)*math.cos(elevation)*norm_fact[3]
+    Y = data*math.sin(azimuth)*math.cos(elevation)*norm_fact[1]
+    Z = data*math.sin(elevation)*norm_fact[2]
+    
+    return W,X,Y,Z
 #Ambisonics Order 1 formulas
-W = data*1
-X = data*math.cos(azimuth)*math.cos(elevation)
-Y = data*math.sin(azimuth)*math.cos(elevation)
-Z = data*math.sin(elevation)
+
 
 #%% Normalization
 def num_channels(amb_order):
@@ -61,7 +71,7 @@ def norm_factors(n_channels,amb_order,norm):
                 if i == 0:
                     norm_fact[norm_id] = math.sqrt(2*x + 1)
                 else:
-                    norm_fact[norm_id] = math.sqrt(2*(2*x+1)*(math.factorial(x-i)/math.factorial(x+i)))
+                    norm_fact[norm_id] = math.sqrt(2*(2*x+1)*(math.factorial(x-abs(i))/math.factorial(x+abs(i))))
             
             elif norm == 'FUMA':
                 if x == 0:
@@ -73,7 +83,7 @@ def norm_factors(n_channels,amb_order,norm):
                 if i == 0:
                     norm_fact[norm_id] = 1
                 else:
-                    norm_fact[norm_id] = math.sqrt(2*(math.factorial(x-i)/math.factorial(x+i)))
+                    norm_fact[norm_id] = math.sqrt(2*(math.factorial(x-abs(i))/math.factorial(x+abs(i))))
             
             norm_id += 1
             
