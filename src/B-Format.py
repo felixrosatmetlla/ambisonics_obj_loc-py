@@ -17,8 +17,14 @@ import os
 def getAudioPath(filename):
     path = os.getcwd()
     path = os.path.dirname(path)
-    path = os.path.join(path,'test_audios/'+ filename) 
+    path = os.path.join(path,'test_audios/input/'+ filename) 
     return path
+
+def getOutputAudioPath(output_filename):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'test_audios/output/'+ output_filename) 
+    return output_path
 
 def num_channels(amb_order):
     n_channels = 0
@@ -99,9 +105,12 @@ norm = 'N3D'
 ch_order = 'ACN'
 filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
 
+output_filename = 'violinsingle_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
+
 #%% Get Path and read audio file
 
 path = getAudioPath(filename)
+out_path = getOutputAudioPath(output_filename)
 
 #Read audio file
 data, samplerate = sf.read(path)
@@ -121,7 +130,7 @@ W,X,Y,Z = toAmbisonics(data,norm_fact)
 audio = order_channels(ch_order,W,X,Y,Z)
 
 #Write the audio file
-sf.write('violinsingle_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi),audio,samplerate)
+sf.write(out_path,audio,samplerate)
 
 #%% Plots   
 
