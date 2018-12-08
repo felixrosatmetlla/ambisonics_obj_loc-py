@@ -46,6 +46,15 @@ Z_fq = sig.stft(Z, samplerate, 'hann', 256)
 Zo = 343*1.204
 
 P = W_fq[2]
-Ux = 1/(np.sqrt(2))*X_fq[2]
-Uy = 1/(np.sqrt(2))*Y_fq[2]
-Uz = 1/(np.sqrt(2))*Z_fq[2]
+Ux = X_fq[2]
+Uy = Y_fq[2]
+Uz = Z_fq[2]
+
+#%%
+I = np.empty(0)
+Ix = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Ux))
+Iy = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Uy))
+Iz = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Uz))
+
+
+
