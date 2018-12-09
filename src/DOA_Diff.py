@@ -43,18 +43,32 @@ Y_fq = sig.stft(Y, samplerate, 'hann', 256)
 Z_fq = sig.stft(Z, samplerate, 'hann', 256)
 
 #%% Compute P and U vectors
-Zo = 343*1.204
+ro = 1.204
+c = 343
+Zo = c*ro
+
+mat_size = [np.shape(X_fq[2])[0],np.shape(X_fq[2])[1],3]
+U = np.empty(mat_size,dtype=np.complex128)
 
 P = W_fq[2]
-Ux = X_fq[2]
-Uy = Y_fq[2]
-Uz = Z_fq[2]
+U[:,:,0] = X_fq[2]
+U[:,:,1] = Y_fq[2]
+U[:,:,2] = Z_fq[2]
+
+#%% Compute the intensity vector and DOA
+
+I = np.empty(mat_size, dtype=np.complex128)
+I[:,:,0] = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(U[:,:,0]))
+I[:,:,1] = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(U[:,:,1]))
+I[:,:,2] = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(U[:,:,2]))
+
+I_norm = np.linalg.norm(I, axis=2)
+
+doa = np.empty(mat_size)
+doa[:,:,0] = -np.nan_to_num(np.divide(I[:,:,0],I_norm))
+doa[:,:,1] = -np.nan_to_num(np.divide(I[:,:,1],I_norm))
+doa[:,:,2] = -np.nan_to_num(np.divide(I[:,:,2],I_norm))
 
 #%%
-I = np.empty(0)
-Ix = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Ux))
-Iy = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Uy))
-Iz = -1/(2*np.sqrt(2)*Zo)*np.real(P*np.conj(Uz))
-
 
 
