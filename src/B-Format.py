@@ -96,13 +96,13 @@ def signal_gain(gain):
 
 #%% Input variables by user
 
-azimuth = math.pi*3/4
+azimuth = 0
 elevation = 0
 
 amb_ord = 1
 
-norm = 'N3D'
-ch_order = 'ACN'
+norm = 'FUMA'
+ch_order = 'FUMA'
 filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
 
 output_filename = 'violinsingle_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
