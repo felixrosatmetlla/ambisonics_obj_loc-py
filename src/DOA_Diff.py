@@ -26,8 +26,10 @@ def getFreqDomain(W,X,Y,Z):
     X_fq = sig.stft(X, samplerate, 'hann', 256)
     Y_fq = sig.stft(Y, samplerate, 'hann', 256)
     Z_fq = sig.stft(Z, samplerate, 'hann', 256)
+    t = W_fq[0]
+    f = W_fq[1]
     
-    return W_fq[2], X_fq[2], Y_fq[2], Z_fq[2]
+    return t, f, W_fq[2], X_fq[2], Y_fq[2], Z_fq[2]
 
 def getXprime(X_fq, Y_fq, Z_fq):
     Xprime_Size = [np.shape(X_fq)[0],np.shape(X_fq)[1], 3]
@@ -66,26 +68,26 @@ def DOA(I, doa_Size):
 def Diffuseness(Xprime, W_fq ):
     norm_Xprime = np.empty(W_fq.shape, dtype=np.complex128)
     norm_Xprime = np.linalg.norm(Xprime, axis=2) 
-    E = (np.power(norm_Xprime,norm_Xprime)/2 + np.power(np.absolute(W_fq),np.absolute(W_fq)))
+    E = (np.power(norm_Xprime,2)/2 + np.power(np.absolute(W_fq),2))
     
-    audio_data = np.empty(Xprime_Size, dtype=np.complex128)
-    audio_data[:,:,0] = (W_fq*np.conj(Xprime[:,:,0]))
-    audio_data[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
-    audio_data[:,:,2] = (W_fq*np.conj(Xprime[:,:,2]))
+    I_data = np.empty(Xprime_Size, dtype=np.complex128)
+    I_data[:,:,0] = (W_fq*np.conj(Xprime[:,:,0]))
+    I_data[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
+    I_data[:,:,2] = (W_fq*np.conj(Xprime[:,:,2]))
     
-    audio_data = audio_data.real
+    I_data = I_data.real
     
     diffueseness = np.empty(W_fq.shape)
     #diffueseness = 1 - (np.sqrt(2)* )
     for x in range(0,W_fq.shape[0]):
         for y in range(0,W_fq.shape[1]):
             if y < 9:
-                avg_data = audio_data[x,0:y+1,:]
+                avg_data = I_data[x,0:y+1,:]
                 avg_data2 = E[x,0:y+1]
                 diffueseness[x,y] = 1 - (np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2)  
                 
             else:
-                avg_data = audio_data[x,y-9:y+1,:]
+                avg_data = I_data[x,y-9:y+1,:]
                 avg_data2 = E[x,y-9:y+1]
                 diffueseness[x,y] = 1 - (np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2)
                 
@@ -103,9 +105,29 @@ X = data[:,1]
 Y = data[:,2]
 Z = data[:,3]
 
+plt.figure()
+plt.suptitle('Waveform W')
+plt.plot(W)
+plt.figure()
+plt.plot(X)
+plt.figure()
+plt.plot(Y)
+plt.figure()
+plt.plot(Z)
+
 #%% We use STFT to get frequency domain of each channel
 
-W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z)
+t, f, W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z)
+
+#plt.pcolormesh(t,f,W_fq)
+plt.figure()
+plt.specgram(W_fq,256,samplerate,900)
+plt.figure()
+plt.specgram(X_fq,256,samplerate,900)
+plt.figure()
+plt.specgram(Y_fq,256,samplerate,900)
+plt.figure()
+plt.specgram(Z_fq,256,samplerate,900)
 
 Xprime, Xprime_Size = getXprime(X_fq, Y_fq, Z_fq)
 
@@ -116,6 +138,10 @@ Zo = c*ro
 
 I = getIntVec(W_fq, Xprime, Xprime_Size, Zo)
 
+I_db = 10*np.log(I) +1e-10
+plt.figure()
+plt.pcolormesh(I_db[:,:,0])
+plt.colorbar()
 doa, r, el, az = DOA(I, Xprime_Size)
 
 #%% Diffuseness computation
