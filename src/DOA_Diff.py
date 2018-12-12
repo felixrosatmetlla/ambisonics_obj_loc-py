@@ -21,11 +21,27 @@ def getBFormatAudioPath(output_filename):
     output_path = os.path.join(output_path,'test_audios/output/'+ output_filename) 
     return output_path
 
-def getFreqDomain(W,X,Y,Z):
-    W_fq = sig.stft(W, samplerate, 'hann', 256)
-    X_fq = sig.stft(X, samplerate, 'hann', 256)
-    Y_fq = sig.stft(Y, samplerate, 'hann', 256)
-    Z_fq = sig.stft(Z, samplerate, 'hann', 256)
+def plotSignal(title, x):
+    plt.figure()
+    plt.suptitle(title)
+    plt.plot(x)
+    
+def plotSpectrogram(title, x_fq, colorMap):
+    plt.figure()
+    plt.suptitle(title)
+    plt.pcolormesh(x_fq, cmap = colorMap)
+    plt.colorbar()
+    
+def to_dB(x):
+    x_db = 10*np.log(x.real) + 1e-10
+    
+    return x_db
+
+def getFreqDomain(W,X,Y,Z, samplerate, win_type, win_length):
+    W_fq = sig.stft(W, samplerate, win_type, win_length)
+    X_fq = sig.stft(X, samplerate, win_type, win_length)
+    Y_fq = sig.stft(Y, samplerate, win_type, win_length)
+    Z_fq = sig.stft(Z, samplerate, win_type, win_length)
     t = W_fq[0]
     f = W_fq[1]
     
@@ -54,9 +70,9 @@ def DOA(I, doa_Size):
     I_norm = np.linalg.norm(I, axis=2)
     
     doa = np.empty(doa_Size)
-    doa[:,:,0] = -np.nan_to_num(np.divide(I[:,:,0],I_norm))
-    doa[:,:,1] = -np.nan_to_num(np.divide(I[:,:,1],I_norm))
-    doa[:,:,2] = -np.nan_to_num(np.divide(I[:,:,2],I_norm))
+    doa[:,:,0] = -(np.divide(I[:,:,0],I_norm)) +1e-10
+    doa[:,:,1] = -(np.divide(I[:,:,1],I_norm)) +1e-10
+    doa[:,:,2] = -(np.divide(I[:,:,2],I_norm)) +1e-10
     
     hxy = np.hypot(doa[:,:,0], doa[:,:,1])
     r = np.hypot(hxy, doa[:,:,2])
@@ -105,29 +121,26 @@ X = data[:,1]
 Y = data[:,2]
 Z = data[:,3]
 
-plt.figure()
-plt.suptitle('Waveform W')
-plt.plot(W)
-plt.figure()
-plt.plot(X)
-plt.figure()
-plt.plot(Y)
-plt.figure()
-plt.plot(Z)
+plotSignal('Waveform W',W)
+plotSignal('Waveform X',X)
+plotSignal('Waveform Y',Y)
+plotSignal('Waveform Z',Z)
 
 #%% We use STFT to get frequency domain of each channel
 
-t, f, W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z)
+t, f, W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z,samplerate,'hann',256)
 
-#plt.pcolormesh(t,f,W_fq)
-plt.figure()
-plt.specgram(W_fq,256,samplerate,900)
-plt.figure()
-plt.specgram(X_fq,256,samplerate,900)
-plt.figure()
-plt.specgram(Y_fq,256,samplerate,900)
-plt.figure()
-plt.specgram(Z_fq,256,samplerate,900)
+
+#plotSpectrogram
+W_fq_db = to_dB(W_fq)
+X_fq_db = to_dB(X_fq)
+Y_fq_db = to_dB(Y_fq)
+Z_fq_db = to_dB(Z_fq)
+
+plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
+plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
+plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
+plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 
 Xprime, Xprime_Size = getXprime(X_fq, Y_fq, Z_fq)
 
@@ -138,17 +151,20 @@ Zo = c*ro
 
 I = getIntVec(W_fq, Xprime, Xprime_Size, Zo)
 
-I_db = 10*np.log(I) +1e-10
-plt.figure()
-plt.pcolormesh(I_db[:,:,0])
-plt.colorbar()
+I_db = 20*np.log(I) +1e-10
+
+plotSpectrogram('Intensity X', I_db[:,:,0], 'viridis')
+plotSpectrogram('Intensity Y', I_db[:,:,1], 'viridis')
+plotSpectrogram('Intensity Z', I_db[:,:,2], 'viridis')
+
 doa, r, el, az = DOA(I, Xprime_Size)
 
+plotSpectrogram('Azimuth', az,'hsv')
+plotSpectrogram('Elevation', el, 'viridis')
 #%% Diffuseness computation
 
-diffueseness = Diffuseness(Xprime, W_fq )
+diffuseness = Diffuseness(Xprime, W_fq )
 
-#%% Plots
+plotSpectrogram('Difuseness', diffuseness, 'viridis')
+
             
-plt.specgram(diffueseness,256,samplerate,900)
-plt.show()
