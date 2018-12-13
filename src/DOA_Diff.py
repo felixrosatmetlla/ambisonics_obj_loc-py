@@ -32,8 +32,12 @@ def plotSpectrogram(title, x_fq, colorMap):
     plt.pcolormesh(x_fq, cmap = colorMap)
     plt.colorbar()
     
-def to_dB(x):
-    x_db = 10*np.log(x.real) + 1e-10
+def to_dB(x, intensity):
+    signal = np.abs(x.real) + 1e-10
+    if intensity == 'Y':
+        x_db = 20*np.log(signal)
+    elif intensity == 'N':
+        x_db = 10*np.log(signal)
     
     return x_db
 
@@ -59,10 +63,16 @@ def getXprime(X_fq, Y_fq, Z_fq):
 
 def getIntVec(W_fq, Xprime, Int_Size, Zo):
     I = np.empty(Int_Size, dtype=np.complex128)
-    I[:,:,0] = -1/(2*np.sqrt(2)*Zo)*(W_fq[2]*np.conj(Xprime[:,:,0]))
-    I[:,:,1] = -1/(2*np.sqrt(2)*Zo)*(W_fq[2]*np.conj(Xprime[:,:,1]))
-    I[:,:,2] = -1/(2*np.sqrt(2)*Zo)*(W_fq[2]*np.conj(Xprime[:,:,2]))    
-    I = I.real
+    I[:,:,0] = (W_fq*np.conj(Xprime[:,:,0]))
+    I[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
+    I[:,:,2] = (W_fq*np.conj(Xprime[:,:,2])) 
+    
+    I = np.abs(I.real)
+    
+    I[:,:,0] = -1/(2*np.sqrt(2)*Zo)*I[:,:,0]
+    I[:,:,1] = -1/(2*np.sqrt(2)*Zo)*I[:,:,1]
+    I[:,:,2] = -1/(2*np.sqrt(2)*Zo)*I[:,:,2]
+    
     
     return I
 
@@ -70,9 +80,9 @@ def DOA(I, doa_Size):
     I_norm = np.linalg.norm(I, axis=2)
     
     doa = np.empty(doa_Size)
-    doa[:,:,0] = -(np.divide(I[:,:,0],I_norm)) +1e-10
-    doa[:,:,1] = -(np.divide(I[:,:,1],I_norm)) +1e-10
-    doa[:,:,2] = -(np.divide(I[:,:,2],I_norm)) +1e-10
+    doa[:,:,0] = -(np.divide(I[:,:,0]+1e-10, I_norm+1e-10)) 
+    doa[:,:,1] = -(np.divide(I[:,:,1]+1e-10, I_norm+1e-10)) 
+    doa[:,:,2] = -(np.divide(I[:,:,2]+1e-10, I_norm+1e-10)) 
     
     hxy = np.hypot(doa[:,:,0], doa[:,:,1])
     r = np.hypot(hxy, doa[:,:,2])
@@ -82,7 +92,7 @@ def DOA(I, doa_Size):
     return doa, r, el, az
 
 def Diffuseness(Xprime, W_fq ):
-    norm_Xprime = np.empty(W_fq.shape, dtype=np.complex128)
+    #norm_Xprime = np.empty(W_fq.shape, dtype=np.complex128)
     norm_Xprime = np.linalg.norm(Xprime, axis=2) 
     E = (np.power(norm_Xprime,2)/2 + np.power(np.absolute(W_fq),2))
     
@@ -91,7 +101,7 @@ def Diffuseness(Xprime, W_fq ):
     I_data[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
     I_data[:,:,2] = (W_fq*np.conj(Xprime[:,:,2]))
     
-    I_data = I_data.real
+    I_data = np.abs(I_data.real)
     
     diffueseness = np.empty(W_fq.shape)
     #diffueseness = 1 - (np.sqrt(2)* )
@@ -132,10 +142,10 @@ t, f, W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z,samplerate,'hann',256)
 
 
 #plotSpectrogram
-W_fq_db = to_dB(W_fq)
-X_fq_db = to_dB(X_fq)
-Y_fq_db = to_dB(Y_fq)
-Z_fq_db = to_dB(Z_fq)
+W_fq_db = to_dB(W_fq, 'N')
+X_fq_db = to_dB(X_fq, 'N')
+Y_fq_db = to_dB(Y_fq, 'N')
+Z_fq_db = to_dB(Z_fq, 'N')
 
 plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
 plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
@@ -151,7 +161,7 @@ Zo = c*ro
 
 I = getIntVec(W_fq, Xprime, Xprime_Size, Zo)
 
-I_db = 20*np.log(I) +1e-10
+I_db = to_dB(I,'Y')
 
 plotSpectrogram('Intensity X', I_db[:,:,0], 'viridis')
 plotSpectrogram('Intensity Y', I_db[:,:,1], 'viridis')
@@ -165,6 +175,6 @@ plotSpectrogram('Elevation', el, 'viridis')
 
 diffuseness = Diffuseness(Xprime, W_fq )
 
-plotSpectrogram('Difuseness', diffuseness, 'viridis')
+plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
             
