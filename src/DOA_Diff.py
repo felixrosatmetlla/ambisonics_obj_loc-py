@@ -41,6 +41,14 @@ def to_dB(x, intensity):
     
     return x_db
 
+def cart2Sph(x):
+    hxy = np.hypot(x[:,:,0], x[:,:,1])
+    r = np.hypot(hxy, x[:,:,2])
+    el = np.arctan2(x[:,:,2], hxy)
+    az = np.arctan2(x[:,:,1], x[:,:,0])
+    
+    return r, el, az
+
 def getFreqDomain(W,X,Y,Z, samplerate, win_type, win_length):
     W_fq = sig.stft(W, samplerate, win_type, win_length)
     X_fq = sig.stft(X, samplerate, win_type, win_length)
@@ -63,31 +71,24 @@ def getXprime(X_fq, Y_fq, Z_fq):
 
 def getIntVec(W_fq, Xprime, Int_Size, Zo):
     I = np.empty(Int_Size, dtype=np.complex128)
-    I[:,:,0] = (W_fq*np.conj(Xprime[:,:,0]))
-    I[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
-    I[:,:,2] = (W_fq*np.conj(Xprime[:,:,2])) 
+
+    for i in range(0,3):
+        I[:,:,i] = (W_fq*np.conj(Xprime[:,:,i]))
     
-    I = np.abs(I.real)
+    I = np.abs(I)
     
-    I[:,:,0] = -1/(2*np.sqrt(2)*Zo)*I[:,:,0]
-    I[:,:,1] = -1/(2*np.sqrt(2)*Zo)*I[:,:,1]
-    I[:,:,2] = -1/(2*np.sqrt(2)*Zo)*I[:,:,2]
-    
-    
+    I[:,:,np.arange(3)] = -1/(2*np.sqrt(2)*Zo)*I[:,:,np.arange(3)]
+
     return I
 
 def DOA(I, doa_Size):
     I_norm = np.linalg.norm(I, axis=2)
     
     doa = np.empty(doa_Size)
-    doa[:,:,0] = -(np.divide(I[:,:,0]+1e-10, I_norm+1e-10)) 
-    doa[:,:,1] = -(np.divide(I[:,:,1]+1e-10, I_norm+1e-10)) 
-    doa[:,:,2] = -(np.divide(I[:,:,2]+1e-10, I_norm+1e-10)) 
+    for i in range(0,3):
+        doa[:,:,i] = -(np.divide(I[:,:,i]+1e-10, I_norm+1e-10)) 
     
-    hxy = np.hypot(doa[:,:,0], doa[:,:,1])
-    r = np.hypot(hxy, doa[:,:,2])
-    el = np.arctan2(doa[:,:,2], hxy)
-    az = np.arctan2(doa[:,:,1], doa[:,:,0])
+    r, el, az = cart2Sph(doa)
     
     return doa, r, el, az
 
@@ -97,11 +98,10 @@ def Diffuseness(Xprime, W_fq ):
     E = (np.power(norm_Xprime,2)/2 + np.power(np.absolute(W_fq),2))
     
     I_data = np.empty(Xprime_Size, dtype=np.complex128)
-    I_data[:,:,0] = (W_fq*np.conj(Xprime[:,:,0]))
-    I_data[:,:,1] = (W_fq*np.conj(Xprime[:,:,1]))
-    I_data[:,:,2] = (W_fq*np.conj(Xprime[:,:,2]))
+    for i in range(0,3):
+        I_data[:,:,i] = (W_fq*np.conj(Xprime[:,:,i]))
     
-    I_data = np.abs(I_data.real)
+    I_data = np.abs(I_data)
     
     diffueseness = np.empty(W_fq.shape)
     #diffueseness = 1 - (np.sqrt(2)* )
@@ -110,17 +110,17 @@ def Diffuseness(Xprime, W_fq ):
             if y < 9:
                 avg_data = I_data[x,0:y+1,:]
                 avg_data2 = E[x,0:y+1]
-                diffueseness[x,y] = 1 - (np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2)  
+                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))  
                 
             else:
                 avg_data = I_data[x,y-9:y+1,:]
                 avg_data2 = E[x,y-9:y+1]
-                diffueseness[x,y] = 1 - (np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2)
+                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))
                 
     return diffueseness
 #%% Get Path and read audio file
     
-bformat_pth = getBFormatAudioPath('violinsingle_FUMA_FUMA(0, 0).wav')
+bformat_pth = getBFormatAudioPath('bucket_FUMA_FUMA(0, 0).wav')
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
