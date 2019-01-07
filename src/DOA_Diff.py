@@ -18,7 +18,7 @@ import os
 def getBFormatAudioPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
-    output_path = os.path.join(output_path,'test_audios/output/'+ output_filename) 
+    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
     return output_path
 
 def plotSignal(title, x):
@@ -118,6 +118,26 @@ def Diffuseness(Xprime, W_fq ):
                 diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))
                 
     return diffueseness
+
+def readGroundTruth():
+    path = getBFormatAudioPath('groundTruth.txt')
+    file = open(path, 'r')
+    i = 0
+    for line in file:
+        if i == 2:
+            azLine = line.split(": ")
+            azimuth = azLine[1]
+            azimuth = int(azimuth)
+        
+        elif i == 3:
+            elLine = line.split(": ")
+            elevation = elLine[1]
+            elevation = int(elevation)
+            
+        i=i+1
+
+    file.close()
+    return azimuth, elevation
 #%% Get Path and read audio file
     
 bformat_pth = getBFormatAudioPath('bucket_FUMA_FUMA(0, 0).wav')
@@ -178,3 +198,4 @@ diffuseness = Diffuseness(Xprime, W_fq )
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
             
+azimuth, elevation = readGroundTruth()

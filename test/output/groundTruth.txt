@@ -1,0 +1,4 @@
+GROUND TRUTH
+-------------
+Azimuth: 0
+Elevation: 0

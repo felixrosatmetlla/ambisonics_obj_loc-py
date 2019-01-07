@@ -17,13 +17,13 @@ import os
 def getAudioPath(filename):
     path = os.getcwd()
     path = os.path.dirname(path)
-    path = os.path.join(path,'test_audios/input/'+ filename) 
+    path = os.path.join(path,'test/input/'+ filename) 
     return path
 
 def getOutputAudioPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
-    output_path = os.path.join(output_path,'test_audios/output/'+ output_filename) 
+    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
     return output_path
 
 def num_channels(amb_order):
@@ -94,6 +94,12 @@ def signal_gain(gain):
     gain_neg = np.abs(gain_neg)
     return gain_pos, gain_neg
 
+def groundTruth(azimuth, elevation):
+    path = getOutputAudioPath("groundTruth.txt")
+    f = open(path, mode = "w")
+    f.write('GROUND TRUTH\n-------------\n' +'Azimuth: %d\n'%(azimuth) + 'Elevation: %d\n'%(elevation))
+    f.close()
+
 #%% Input variables by user
 
 azimuth = 0
@@ -103,9 +109,9 @@ amb_ord = 1
 
 norm = 'FUMA'
 ch_order = 'FUMA'
-filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
+filename = '346__anton__hit-bucket.wav'
 
-output_filename = 'violinsingle_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
+output_filename = 'bucket_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
 
 #%% Get Path and read audio file
 
@@ -132,6 +138,8 @@ audio = order_channels(ch_order,W,X,Y,Z)
 #Write the audio file
 sf.write(out_path,audio,samplerate)
 
+#Write Ground Truth file
+file = groundTruth(azimuth, elevation)
 #%% Plots   
 
 azi = np.arange(0,2*np.pi,0.01)
