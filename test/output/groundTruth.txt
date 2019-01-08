@@ -1,4 +1,5 @@
 GROUND TRUTH
 -------------
+Sound File: 346__anton__hit-bucket.wav
 Azimuth: 0
 Elevation: 0

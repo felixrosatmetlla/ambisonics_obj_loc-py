@@ -124,12 +124,12 @@ def readGroundTruth():
     file = open(path, 'r')
     i = 0
     for line in file:
-        if i == 2:
+        if i == 3:
             azLine = line.split(": ")
             azimuth = azLine[1]
             azimuth = int(azimuth)
         
-        elif i == 3:
+        elif i == 4:
             elLine = line.split(": ")
             elevation = elLine[1]
             elevation = int(elevation)

@@ -94,10 +94,10 @@ def signal_gain(gain):
     gain_neg = np.abs(gain_neg)
     return gain_pos, gain_neg
 
-def groundTruth(azimuth, elevation):
+def groundTruth(azimuth, elevation,filename):
     path = getOutputAudioPath("groundTruth.txt")
     f = open(path, mode = "w")
-    f.write('GROUND TRUTH\n-------------\n' +'Azimuth: %d\n'%(azimuth) + 'Elevation: %d\n'%(elevation))
+    f.write('GROUND TRUTH\n-------------\n' + 'Sound File: %s\n'%(filename) +'Azimuth: %d\n'%(azimuth) + 'Elevation: %d\n'%(elevation))
     f.close()
 
 #%% Input variables by user
@@ -139,7 +139,7 @@ audio = order_channels(ch_order,W,X,Y,Z)
 sf.write(out_path,audio,samplerate)
 
 #Write Ground Truth file
-file = groundTruth(azimuth, elevation)
+groundTruth(azimuth, elevation, filename)
 #%% Plots   
 
 azi = np.arange(0,2*np.pi,0.01)
