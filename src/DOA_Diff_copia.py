@@ -172,12 +172,52 @@ def getMask(data, diffuseness, thr):
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
             if (1-diffuseness[x,y]) > thr:
-                mask[x,y] = data[x,y]
+                mask[x,y] = 1
             else:
                 mask[x,y] = np.nan
     return mask
 
+def elMeanDev(data, mask):
+    i=1
+    aux = 0
+    for x in range(np.shape(data)[0]):
+        for y in range(np.shape(data)[1]):
+            if mask[x,y] == 1:
+                aux = aux + data[x,y]
+                i = i+1
+                
+    mean = aux/i
+    
+    j=1
+    aux2 = 0
+    for x in range(np.shape(data)[0]):
+        for y in range(np.shape(data)[1]):
+            if mask[x,y] == 1:
+                aux2 = aux2 + np.power((data[x,y]-mean),2)
+                j = j+1
+    
+    dev = np.sqrt(aux2/(j-1))
+    return mean, dev
 
+def azMeanDev(data, mask):
+    
+    i=1
+    aux_c = 0
+    aux_s = 0 
+    for x in range(np.shape(data)[0]):
+        for y in range(np.shape(data)[1]):
+            if mask[x,y] == 1:
+                aux_c = aux_c + np.cos(data[x,y])
+                aux_s = aux_s + np.sin(data[x,y])
+                i = i+1
+    C = aux_c/i
+    S = aux_s/i
+    mean = np.arctan2(S,C)
+    
+    R = np.sqrt((np.power(C,2) + np.power(S,2)))
+    dev = np.sqrt(-2*np.log(R))
+    return mean, dev
+    
 def readGroundTruth():
     path = getBFormatAudioPath('groundTruth.txt')
     file = open(path, 'r')
@@ -251,6 +291,7 @@ diffuseness = Diffuseness(u_kn, stft[0,:,:] ,I,dt=10)
 
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
+#%%
             
 azimuth, elevation = readGroundTruth()
 
@@ -259,3 +300,6 @@ azMask = getMask(az, diffuseness, 0.7)
 
 plotSpectrogram('Elevation Mask', elMask, 'viridis')
 plotSpectrogram('Azimuth Mask', azMask, 'viridis')
+
+elMean, elDev = elMeanDev(el,elMask)
+azMean, azDev = azMeanDev(az,azMask)
