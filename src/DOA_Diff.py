@@ -204,7 +204,7 @@ plotSpectrogram('Azimuth', az,'hsv')
 plotSpectrogram('Elevation', el, 'viridis')
 #%% Diffuseness computation
 
-diffuseness = Diffuseness(Xprime, W_fq ,dt=10)
+diffuseness = Diffuseness(Xprime, W_fq)
 
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
