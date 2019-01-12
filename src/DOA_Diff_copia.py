@@ -303,3 +303,6 @@ plotSpectrogram('Azimuth Mask', azMask, 'viridis')
 
 elMean, elDev = elMeanDev(el,elMask)
 azMean, azDev = azMeanDev(az,azMask)
+
+#%%
+

@@ -11,6 +11,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import os
+import xml.etree.ElementTree as ET
 
 #%%
 
@@ -94,11 +95,27 @@ def signal_gain(gain):
     gain_neg = np.abs(gain_neg)
     return gain_pos, gain_neg
 
-def groundTruth(azimuth, elevation,filename):
-    path = getOutputAudioPath("groundTruth.txt")
-    f = open(path, mode = "w")
-    f.write('GROUND TRUTH\n-------------\n' + 'Sound File: %s\n'%(filename) +'Azimuth: %d\n'%(azimuth) + 'Elevation: %d\n'%(elevation))
-    f.close()
+def groundTruth(azi, ele,filenm):
+    
+    data = ET.Element('data')
+    title = ET.SubElement(data,'title')
+    filename = ET.SubElement(data,'filename')
+    azimuth = ET.SubElement(data, 'azimuth')
+    elevation = ET.SubElement(data, 'elevation')
+    
+    title.set('name','GroundTruth')
+    filename.set('name','Filename')
+    azimuth.set('name','Aizimuth')
+    elevation.set('name','Elevation')
+    
+    title.text = 'Ground Truth'
+    filename.text = filenm
+    azimuth.text = str(azi)
+    elevation.text = str(ele)
+    
+    path = getOutputAudioPath("groundTruth.xml")
+    groundtruth = ET.ElementTree(data)
+    groundtruth.write(path)
 
 #%% Input variables by user
 
