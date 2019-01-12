@@ -13,8 +13,13 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 import os
 
+#%% Global Variables
+
+c = 346.13  # m/s
+p0 = 1.1839 # kg/m3
+
 #%% Functions
-p0 = 1.1839
+
 def getBFormatAudioPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
@@ -50,37 +55,40 @@ def cart2Sph(x):
     
     return r, el, az
 
-def getFreqDomain(W,X,Y,Z, samplerate, win_type, win_length):
-    W_fq = sig.stft(W, samplerate, win_type, win_length)
-    X_fq = sig.stft(X, samplerate, win_type, win_length)
-    Y_fq = sig.stft(Y, samplerate, win_type, win_length)
-    Z_fq = sig.stft(Z, samplerate, win_type, win_length)
-    t = W_fq[0]
-    f = W_fq[1]
+def getFreqDomain(data, samplerate, win_type, win_length):
     
-    return t, f, W_fq[2], X_fq[2], Y_fq[2], Z_fq[2]
+    for x in range(0,4):
+        aux = sig.stft(data[:,x], samplerate, win_type, win_length)
+        stft[:,:,x] = aux[2]
 
-def getXprime(X_fq, Y_fq, Z_fq):
-    Xprime_Size = [np.shape(X_fq)[0],np.shape(X_fq)[1], 3]
+    t = aux[0]
+    f = aux[1]
     
-    Xprime = np.empty(Xprime_Size, dtype=np.complex128)
-    Xprime[:,:,0] = X_fq
-    Xprime[:,:,1] = Y_fq
-    Xprime[:,:,2] = Z_fq
-    
-    return Xprime, Xprime_Size
+    return t, f, stft
 
-def getIntVec(W_fq, Xprime, Int_Size, Zo):
-    I = np.empty(Int_Size, dtype=np.complex128)
-
-    for i in range(0,3):
-        I[:,:,i] = (W_fq*np.conj(Xprime[:,:,i]))
+def getVelocityVect(stft):    
+    scale = -1.0/(p0*c)
+    u_kn = scale*stft[:,:,1:]
     
-    I = np.abs(I)
-    
-    I[:,:,np.arange(3)] = -1/(2*np.sqrt(2)*Zo)*I[:,:,np.arange(3)]
+    return u_kn
 
-    return I
+def getPressure(stft):
+    p_kn = stft[:,:,0]
+    
+    return p_kn
+
+def getEnergyVeect(p_kn, u_kn):
+    norm_u_kn = np.linalg.norm(u_kn, axis=2) 
+    e_kn = p0*np.power(norm_u_kn,2)/2. + ((1./(2*p0*np.power(c,2)))*np.power(np.absolute(p_kn),2))
+    
+    return e_kn
+
+def getIntVec(p_kn, u_kn):
+    
+    for x in range(0,3):
+        i_kn[:,:,x] = 0.5 * np.real(p_kn * np.conj(u_kn[:,:,x]))
+    
+    return i_kn
 
 def DOA(I, doa_Size):
     I_norm = np.linalg.norm(I, axis=2)
@@ -93,41 +101,51 @@ def DOA(I, doa_Size):
     
     return doa, r, el, az
 
-def compute_energy_density(W_fq,Xprime):
-    p_kn = W_fq
-    u_kn = Xprime
-
-    s1 = np.power(np.linalg.norm(u_kn,axis=2), 2)
-    s2 = np.power(abs(p_kn), 2)
-
-    data = ((p0/2.)*s1) + ((1./(2*p0*np.power(c,2)))*s2)
-    return data
-
-def Diffuseness(Xprime, W_fq ):
+def Diffuseness(u_kn, W_fq ,I, dt=10):
     #norm_Xprime = np.empty(W_fq.shape, dtype=np.complex128)
-    norm_Xprime = np.linalg.norm(Xprime, axis=2) 
-    E = (np.power(norm_Xprime,2)/2 + np.power(np.absolute(W_fq),2))
+    norm_u_kn = np.linalg.norm(u_kn, axis=2) 
     
-    I_data = np.empty(Xprime_Size, dtype=np.complex128)
-    for i in range(0,3):
+    e_kn = p0*np.power(norm_u_kn,2)/2. + ((1./(2*p0*np.power(c,2)))*np.power(np.absolute(W_fq),2))
+ 
+    i_kn = I
+    
+    """for i in range(0,3):
         I_data[:,:,i] = (W_fq*np.conj(Xprime[:,:,i]))
     
     I_data = np.abs(I_data)
-    
+    """
     diffueseness = np.empty(W_fq.shape)
     #diffueseness = 1 - (np.sqrt(2)* )
-    for x in range(0,W_fq.shape[0]):
+    """for x in range(0,W_fq.shape[0]):
         for y in range(0,W_fq.shape[1]):
             if y < 9:
                 avg_data = I_data[x,0:y+1,:]
                 avg_data2 = E[x,0:y+1]
-                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))  
+                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.mean(avg_data)))/(c*np.mean(avg_data2)))  
                 
             else:
                 avg_data = I_data[x,y-9:y+1,:]
                 avg_data2 = E[x,y-9:y+1]
-                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))
+                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.mean(avg_data)))/(c*np.mean(avg_data2)))
                 
+    """
+    K = W_fq.shape[0]
+    N = W_fq.shape[1]
+    dif = np.zeros((K, N))
+
+    for k in range(K):
+        for n in range(int(dt / 2), int(N - dt / 2)):
+            num = np.linalg.norm(np.mean(i_kn[:, k, n:n + dt], axis=1))
+            den = c * np.mean(e_kn[k,n:n+dt])
+            dif[k,n] = 1 - (num/(den+1e-10))
+
+        # Borders: copy neighbor values
+        for n in range(0, int(dt/2)):
+            dif[k, n] = dif[k, int(dt/2)]
+
+        for n in range(int(N - dt / 2), N):
+            dif[k, n] = dif[k, N - int(dt/2) - 1]
+            
     return diffueseness
 
 def readGroundTruth():
@@ -169,28 +187,23 @@ plotSignal('Waveform Z',Z)
 
 #%% We use STFT to get frequency domain of each channel
 
-t, f, W_fq, X_fq, Y_fq, Z_fq = getFreqDomain(W,X,Y,Z,samplerate,'hann',256)
-
+time, freq, stft = getFreqDomain(data,samplerate,'hann',256)
 
 #plotSpectrogram
-W_fq_db = to_dB(W_fq, 'N')
-X_fq_db = to_dB(X_fq, 'N')
-Y_fq_db = to_dB(Y_fq, 'N')
-Z_fq_db = to_dB(Z_fq, 'N')
+W_fq_db = to_dB(stft[:,:,0], 'N')
+X_fq_db = to_dB(stft[:,:,1], 'N')
+Y_fq_db = to_dB(stft[:,:,2], 'N')
+Z_fq_db = to_dB(stft[:,:,3], 'N')
 
 plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
 plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
 plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
 plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 
-Xprime, Xprime_Size = getXprime(X_fq, Y_fq, Z_fq)
+u_kn = getVelocityVect(stft)
 
 #%% Compute the intensity vector and DOA
-ro = 1.204
-c = 343
-Zo = c*ro
-
-I = getIntVec(W_fq, Xprime, Xprime_Size, Zo)
+I = getIntVec(stft[:,:,0], u_kn)
 
 I_db = to_dB(I,'Y')
 
@@ -204,7 +217,7 @@ plotSpectrogram('Azimuth', az,'hsv')
 plotSpectrogram('Elevation', el, 'viridis')
 #%% Diffuseness computation
 
-diffuseness = Diffuseness(Xprime, W_fq ,dt=10)
+diffuseness = Diffuseness(u_kn, stft[:,:,0] ,I,dt=10)
 
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 

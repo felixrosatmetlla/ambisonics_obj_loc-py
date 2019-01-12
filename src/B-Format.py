@@ -109,9 +109,9 @@ amb_ord = 1
 
 norm = 'FUMA'
 ch_order = 'FUMA'
-filename = '346__anton__hit-bucket.wav'
+filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
 
-output_filename = 'bucket_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
+output_filename = 'violin_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
 
 #%% Get Path and read audio file
 

@@ -1,5 +1,5 @@
 GROUND TRUTH
 -------------
-Sound File: 346__anton__hit-bucket.wav
+Sound File: 271053__milanvdmeer__violinsingle-130-4mf-4.wav
 Azimuth: 0
 Elevation: 0
