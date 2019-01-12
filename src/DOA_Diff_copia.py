@@ -12,6 +12,8 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 import os
+import xml.etree.ElementTree as ET
+
 
 #%% Global Variables
 
@@ -219,24 +221,14 @@ def azMeanDev(data, mask):
     return mean, dev
     
 def readGroundTruth():
-    path = getBFormatAudioPath('groundTruth.txt')
-    file = open(path, 'r')
-    i = 0
-    for line in file:
-        if i == 3:
-            azLine = line.split(": ")
-            azimuth = azLine[1]
-            azimuth = int(azimuth)
-        
-        elif i == 4:
-            elLine = line.split(": ")
-            elevation = elLine[1]
-            elevation = int(elevation)
-            
-        i=i+1
-
-    file.close()
-    return azimuth, elevation
+    path = getBFormatAudioPath('groundTruth.xml')
+    tree = ET.parse(path)
+    root = tree.getroot()
+    
+    azimuth = root.findtext('azimuth')
+    elevation = root.findtext('elevation')
+    
+    return float(azimuth), float(elevation)
 #%% Get Path and read audio file
     
 bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(0, 0).wav')
