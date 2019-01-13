@@ -219,7 +219,27 @@ def azMeanDev(data, mask):
     R = np.sqrt((np.power(C,2) + np.power(S,2)))
     dev = np.sqrt(-2*np.log(R))
     return mean, dev
-    
+
+def plotHist2D(azi, ele, mask):
+    plt.figure()
+    #plt.suptitle(title)
+    i=0
+    azimuth = np.empty(1)
+    elevation = np.empty(1)
+    for x in range(np.shape(azi)[0]):
+        for y in range(np.shape(azi)[1]):
+            if mask[x,y] == 1:
+                if i == 0:
+                    azimuth[i] = azi[x,y]
+                    elevation[i] = ele[x,y]
+                    i = i+1
+                else:
+                    azimuth = np.append(azimuth ,azi[x,y])
+                    elevation = np.append(elevation, ele[x,y])
+                    i = i+1
+                
+    plt.hist2d(azimuth, elevation)
+            
 def readGroundTruth():
     path = getBFormatAudioPath('groundTruth.xml')
     tree = ET.parse(path)
@@ -298,3 +318,4 @@ azMean, azDev = azMeanDev(az,azMask)
 
 #%%
 
+plotHist2D(az, el, elMask)

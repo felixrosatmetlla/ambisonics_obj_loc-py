@@ -129,7 +129,7 @@ def Diffuseness(Xprime, W_fq ):
                 diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.average(avg_data)))/np.average(avg_data2))
                 
     return diffueseness
-
+        
 def readGroundTruth():
     path = getBFormatAudioPath('groundTruth.txt')
     file = open(path, 'r')
