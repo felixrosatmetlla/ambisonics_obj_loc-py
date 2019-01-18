@@ -13,7 +13,7 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 import os
 import xml.etree.ElementTree as ET
-
+import random
 
 #%% Global Variables
 
@@ -33,6 +33,12 @@ def plotSignal(title, x):
     plt.suptitle(title)
     plt.plot(x)
     
+def getOutputAudioPath(output_filename):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
+    return output_path
+
 def plotSpectrogram(title, x_fq, colorMap):
     plt.figure()
     plt.suptitle(title)
@@ -71,7 +77,7 @@ def getFreqDomain(data, samplerate, win_type, win_length):
     return t, f, stft
 
 def getVelocityVect(stft):    
-    scale = -1.0/(p0*c)
+    scale = -1.0/(np.sqrt(2)*p0*c)
     u_kn = scale*stft[1:,:,:]
     
     return u_kn
@@ -86,7 +92,7 @@ def getEnergyVect(p_kn, u_kn):
     s1 = np.power(np.linalg.norm(u_kn,axis=0), 2)
     s2 = np.power(abs(p_kn), 2)
 
-    data = ((p0/2.)*s1) + ((1./(2*p0*np.power(c,2)))*s2)
+    data = ((p0/4.)*s1) + ((1./(4*p0*np.power(c,2)))*s2)
     return data
 
 def getIntVec(p_kn, u_kn):
@@ -94,7 +100,7 @@ def getIntVec(p_kn, u_kn):
     Xprime_Size = [np.shape(p_kn)[0],np.shape(p_kn)[1], 3]
     I = np.empty(Xprime_Size, dtype=np.complex128)
 
-    I = 0.5 * np.real(p_kn * np.conj(u_kn))
+    I = np.real(p_kn * np.conj(u_kn))
     
     return I
 
@@ -102,7 +108,7 @@ def DOA(I):
     I_norm = np.linalg.norm(I, axis=0)
     doa = np.empty(np.shape(I))
     for i in range(0,3):
-        doa[i,:,:] = -(np.divide(I[i,:,:]+1e-10, I_norm+1e-10)) 
+        doa[i,:,:] = -(np.divide(I[i,:,:], I_norm)) 
     
     r, el, az = cart2Sph(doa)
     
@@ -157,7 +163,8 @@ def Diffuseness(u_kn, W_fq ,I, dt=10):
         for n in range(int(dt / 2), int(N - dt / 2)):
             num = np.linalg.norm(np.mean(i_kn[:, k, n:n + dt]))
             den = c * np.mean(e_kn[k,n:n+dt])
-            diffueseness[k,n] = 1 - ((num+1e-10)/(den+1e-10))
+            diffueseness[k,n] = 1-((num)/(den))
+            #diffueseness[k,n] = 1 - ((num+1e-10)/(den+1e-10))
         
         # Borders: copy neighbor values
         for n in range(0, int(dt/2)):
@@ -220,6 +227,20 @@ def azMeanDev(data, mask):
     dev = np.sqrt(-2*np.log(R))
     return mean, dev
 
+def getMSE(data, mask, gT):
+    
+    i=1
+    aux = 0
+    for x in range(np.shape(data)[0]):
+        for y in range(np.shape(data)[1]):
+            if mask[x,y] == 1:
+                aux = aux + np.power((gT - data[x,y]),2)
+                i = i+1
+    
+    MSE = aux/i
+    
+    return MSE
+
 def plotHist2D(azi, ele, mask):
     plt.figure()
     #plt.suptitle(title)
@@ -238,8 +259,65 @@ def plotHist2D(azi, ele, mask):
                     elevation = np.append(elevation, ele[x,y])
                     i = i+1
                 
-    plt.hist2d(azimuth, elevation)
-            
+    plt.hist2d(azimuth, elevation, bins= [360, 180])
+    plt.colorbar()
+    
+    plt.figure()
+    nbins = [360, 180]
+    H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
+     
+    # H needs to be rotated and flipped
+    H = np.rot90(H)
+    H = np.flipud(H)
+     
+    # Mask zeros
+    Hmasked = np.ma.masked_where(H==0,H) # Mask pixels with a value of zero
+     
+    # Plot 2D histogram using pcolor
+    plt.pcolormesh(xedges,yedges,Hmasked)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('Counts')
+    
+def plotHist2DwMask(azi, ele):
+    plt.figure()
+    #plt.suptitle(title)
+    i=0
+    azimuth = np.empty(1)
+    elevation = np.empty(1)
+    for x in range(np.shape(azi)[0]):
+        for y in range(np.shape(azi)[1]):
+            if i == 0:
+                azimuth[i] = azi[x,y]
+                elevation[i] = ele[x,y]
+                i = i+1
+            else:
+                azimuth = np.append(azimuth ,azi[x,y])
+                elevation = np.append(elevation, ele[x,y])
+                i = i+1
+                
+    plt.hist2d(azimuth, elevation, bins= [360, 180])
+    plt.colorbar()
+    
+    plt.figure()
+    nbins = [360, 180]
+    H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
+     
+    # H needs to be rotated and flipped
+    H = np.rot90(H)
+    H = np.flipud(H)
+     
+    # Mask zeros
+    Hmasked = np.ma.masked_where(H==0,H) # Mask pixels with a value of zero
+     
+    # Plot 2D histogram using pcolor
+    plt.pcolormesh(xedges,yedges,Hmasked)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('Counts')
+    
 def readGroundTruth():
     path = getBFormatAudioPath('groundTruth.xml')
     tree = ET.parse(path)
@@ -249,6 +327,53 @@ def readGroundTruth():
     elevation = root.findtext('elevation')
     
     return float(azimuth), float(elevation)
+
+def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE):
+    data = ET.Element('data')
+    title = ET.SubElement(data,'title')
+    filenm = ET.SubElement(data, 'filename')
+    azimuth_xml = ET.SubElement(data, 'azimuth')
+    elevation_xml = ET.SubElement(data, 'elevation')
+    
+    results = ET.SubElement(data,'results')
+    azimuth_ = ET.SubElement(results, 'azimuth')
+    aziMean = ET.SubElement(azimuth_, 'Mean')
+    aziDev = ET.SubElement(azimuth_, 'Deviation')
+    aziMSE = ET.SubElement(azimuth_, 'MSE')
+    elevation_ = ET.SubElement(results, 'elevation')
+    eleMean = ET.SubElement(elevation_, 'Mean')
+    eleDev = ET.SubElement(elevation_, 'Deviation')
+    eleMSE = ET.SubElement(elevation_, 'MSE')
+    
+    title.set('name','GroundTruth')
+    filenm.set('name','Filename')
+    azimuth_xml.set('name','Azimuth')
+    elevation_xml.set('name','Elevation')
+    results.set('name','Results')
+    azimuth_.set('name','Azimuth')
+    elevation_.set('name','Elevation')
+    aziMean.set('name','Azimuth Mean')
+    aziDev.set('name','Azimuth Deviation')
+    aziMSE.set('name','Azimuth MSE')
+    eleMean.set('name','Elevation Mean')
+    eleDev.set('name','Elevation Deviation')
+    eleMSE.set('name','Elevation MSE')
+    
+    title.text = 'Ground Truth'
+    filenm.text = filename
+    azimuth_xml.text = str(azimuth)
+    elevation_xml.text = str(elevation)
+    aziMean.text = str(azMean)
+    aziDev.text = str(azDev)
+    aziMSE.text = str(azMSE)
+    eleMean.text = str(elMean)
+    eleDev.text = str(elDev)
+    eleMSE.text = str(elMSE)
+    
+    path = getOutputAudioPath("results.xml")
+    results = ET.ElementTree(data)
+    results.write(path)
+    
 #%% Get Path and read audio file
     
 bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(0, 0).wav')
@@ -256,6 +381,9 @@ bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(0, 0).wav')
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
 
+for i in range(np.shape(data)[0]):
+    for n in range(4):
+        data[i,n] += (random.random()-0.5)*1e-2
 #We get each channel individually
 W = data[:,0]
 X = data[:,1]
@@ -307,8 +435,8 @@ plotSpectrogram('Diffuseness', diffuseness, 'viridis')
             
 azimuth, elevation = readGroundTruth()
 
-elMask = getMask(el, diffuseness, 0.7)
-azMask = getMask(az, diffuseness, 0.7)
+elMask = getMask(el, diffuseness, 0.6)
+azMask = getMask(az, diffuseness, 0.6)
 
 plotSpectrogram('Elevation Mask', elMask, 'viridis')
 plotSpectrogram('Azimuth Mask', azMask, 'viridis')
@@ -319,3 +447,11 @@ azMean, azDev = azMeanDev(az,azMask)
 #%%
 
 plotHist2D(az, el, elMask)
+plotHist2DwMask(az, el)
+
+#%%
+
+azMSE = getMSE(az,azMask, azimuth)
+elMSE = getMSE(el,elMask, elevation)
+
+writeResults('violin_FUMA_FUMA(0, 0).wav', azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE)

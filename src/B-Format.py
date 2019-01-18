@@ -105,7 +105,7 @@ def groundTruth(azi, ele,filenm):
     
     title.set('name','GroundTruth')
     filename.set('name','Filename')
-    azimuth.set('name','Aizimuth')
+    azimuth.set('name','Azimuth')
     elevation.set('name','Elevation')
     
     title.text = 'Ground Truth'

@@ -12,7 +12,7 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 import os
-
+import random
 #%% Functions
 p0 = 1.1839
 def getBFormatAudioPath(output_filename):
@@ -78,7 +78,7 @@ def getIntVec(W_fq, Xprime, Int_Size, Zo):
     
     I = np.abs(I)
     
-    I[:,:,np.arange(3)] = -1/(2*np.sqrt(2)*Zo)*I[:,:,np.arange(3)]
+    I[:,:,np.arange(3)] = -1/(np.sqrt(2)*Zo)*I[:,:,np.arange(3)]
 
     return I
 
@@ -156,6 +156,10 @@ bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(0, 0).wav')
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
 
+for i in range(np.shape(data)[0]):
+    for n in range(4):
+        data[i,n] += (random.random()-0.5)*1e-5
+        
 #We get each channel individually
 W = data[:,0]
 X = data[:,1]
