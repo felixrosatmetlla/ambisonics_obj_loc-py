@@ -100,7 +100,7 @@ def compute_energy_density(W_fq,Xprime):
     s1 = np.power(np.linalg.norm(u_kn,axis=2), 2)
     s2 = np.power(abs(p_kn), 2)
 
-    data = ((p0/2.)*s1) + ((1./(2*p0*np.power(c,2)))*s2)
+    data = ((p0/4.)*s1) + ((1./(4*p0*np.power(c,2)))*s2)
     return data
 
 def Diffuseness(Xprime, W_fq ):

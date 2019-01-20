@@ -87,15 +87,18 @@ def getPressure(stft):
     
     return p_kn
 
-def getEnergyVect(p_kn, u_kn):
-
+def getEnergyVect(stft):
+    p_kn = getPressure(stft)
+    u_kn = getVelocityVect(stft)
     s1 = np.power(np.linalg.norm(u_kn,axis=0), 2)
     s2 = np.power(abs(p_kn), 2)
 
     data = ((p0/4.)*s1) + ((1./(4*p0*np.power(c,2)))*s2)
     return data
 
-def getIntVec(p_kn, u_kn):
+def getIntVec(stft):
+    p_kn = getPressure(stft)
+    u_kn = getVelocityVect(stft)
     
     Xprime_Size = [np.shape(p_kn)[0],np.shape(p_kn)[1], 3]
     I = np.empty(Xprime_Size, dtype=np.complex128)
@@ -104,60 +107,24 @@ def getIntVec(p_kn, u_kn):
     
     return I
 
-def DOA(I):
-    I_norm = np.linalg.norm(I, axis=0)
-    doa = np.empty(np.shape(I))
+def DOA(stft):
+    i_kn = getIntVec(stft)
+    
+    I_norm = np.linalg.norm(i_kn, axis=0)
+    doa = np.empty(np.shape(i_kn))
     for i in range(0,3):
-        doa[i,:,:] = -(np.divide(I[i,:,:], I_norm)) 
+        doa[i,:,:] = -(np.divide(i_kn[i,:,:], I_norm)) 
     
     r, el, az = cart2Sph(doa)
     
     return doa, r, el, az
 
-def Diffuseness(u_kn, W_fq ,I, dt=10):
+def Diffuseness(stft, dt=10): 
+    e_kn = getEnergyVect(stft)
+    i_kn = getIntVec(stft)
     
-    e_kn=getEnergyVect(W_fq, u_kn)
-    i_kn = I
-    
-    """for i in range(0,3):
-        I_data[:,:,i] = (W_fq*np.conj(Xprime[:,:,i]))
-    
-    I_data = np.abs(I_data)
-    """
-    #diffueseness = np.empty(W_fq.shape)
-    #diffueseness = 1 - (np.sqrt(2)* )
-    """for x in range(0,W_fq.shape[0]):
-        for y in range(0,W_fq.shape[1]):
-            if y < 9:
-                avg_data = I_data[x,0:y+1,:]
-                avg_data2 = E[x,0:y+1]
-                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.mean(avg_data)))/(c*np.mean(avg_data2)))  
-                
-            else:
-                avg_data = I_data[x,y-9:y+1,:]
-                avg_data2 = E[x,y-9:y+1]
-                diffueseness[x,y] = 1 - ((np.sqrt(2)* np.linalg.norm(np.mean(avg_data)))/(c*np.mean(avg_data2)))
-                
-    
-    K = W_fq.shape[0]
-    N = W_fq.shape[1]
-    diffueseness = np.zeros((K, N))
-     
-    for k in range(K):
-        for n in range(5, (N-5)):
-            num = np.linalg.norm(np.mean(i_kn[ k, n:n + dt,:]))
-            den = c * np.mean(e_kn[k,n:n+dt])
-            diffueseness[k,n] = 1 - (num/(den+1e-10))
-
-        # Borders: copy neighbor values
-        for n in range(0, 5):
-            diffueseness[k, n] = diffueseness[k, 5]
-
-        for n in range((N - 5), N):
-            diffueseness[k, n] = diffueseness[k, N - 5 - 1]
-    """
-    K = W_fq.shape[0]
-    N = W_fq.shape[1]
+    K = e_kn.shape[0]
+    N = e_kn.shape[1]
     diffueseness = np.zeros((K, N))
     for k in range(K):
         for n in range(int(dt / 2), int(N - dt / 2)):
@@ -384,7 +351,9 @@ data, samplerate = sf.read(bformat_pth)
 for i in range(np.shape(data)[0]):
     for n in range(4):
         data[i,n] += (random.random()-0.5)*1e-2
+
 #We get each channel individually
+
 W = data[:,0]
 X = data[:,1]
 Y = data[:,2]
@@ -410,29 +379,19 @@ plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
 plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
 plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 
-u_kn = getVelocityVect(stft)
-p_kn = getPressure(stft)
 #%% Compute the intensity vector and DOA
-I = getIntVec(p_kn, u_kn)
 
-I_db = to_dB(I,'Y')
-
-plotSpectrogram('Intensity X', I_db[0,:,:], 'viridis')
-plotSpectrogram('Intensity Y', I_db[1,:,:], 'viridis')
-plotSpectrogram('Intensity Z', I_db[2,:,:], 'viridis')
-
-doa, r, el, az = DOA(I)
-
+doa, r, el, az = DOA(stft)
 plotSpectrogram('Azimuth', az,'hsv')
 plotSpectrogram('Elevation', el, 'viridis')
+
 #%% Diffuseness computation
 
-diffuseness = Diffuseness(u_kn, stft[0,:,:] ,I,dt=10)
-
+diffuseness = Diffuseness(stft, dt=10)
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
 #%%
-            
+
 azimuth, elevation = readGroundTruth()
 
 elMask = getMask(el, diffuseness, 0.6)
