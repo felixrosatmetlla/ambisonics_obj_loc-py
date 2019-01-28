@@ -119,8 +119,8 @@ def groundTruth(azi, ele,filenm):
 
 #%% Input variables by user
 
-azimuth = 3.14
-elevation = 0
+azimuth = np.pi/4
+elevation = -np.pi/4
 
 amb_ord = 1
 

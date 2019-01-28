@@ -125,22 +125,22 @@ def Diffuseness(stft, dt=10):
     
     K = e_kn.shape[0]
     N = e_kn.shape[1]
-    diffueseness = np.zeros((K, N))
+    diffuseness = np.zeros((K, N))
     for k in range(K):
         for n in range(int(dt / 2), int(N - dt / 2)):
             num = np.linalg.norm(np.mean(i_kn[:, k, n:n + dt]))
             den = c * np.mean(e_kn[k,n:n+dt])
-            diffueseness[k,n] = 1-((num)/(den))
+            diffuseness[k,n] = 1-((num)/(den))
             #diffueseness[k,n] = 1 - ((num+1e-10)/(den+1e-10))
         
         # Borders: copy neighbor values
         for n in range(0, int(dt/2)):
-            diffueseness[k, n] = diffueseness[k, int(dt/2)]
+            diffuseness[k, n] = diffuseness[k, int(dt/2)]
         
         for n in range(int(N - dt / 2), N):
-            diffueseness[k, n] = diffueseness[k, N - int(dt/2) - 1]
+            diffuseness[k, n] = diffuseness[k, N - int(dt/2) - 1]
 
-    return diffueseness
+    return diffuseness, e_kn, i_kn
 
 def getMask(data, diffuseness, thr):
     mask = np.empty(np.shape(data))
@@ -154,6 +154,9 @@ def getMask(data, diffuseness, thr):
     return mask
 
 def elMeanDev(data, mask):
+    
+    mask = getMask(data, diffuseness, 0.0)
+    
     i=1
     aux = 0
     for x in range(np.shape(data)[0]):
@@ -175,7 +178,9 @@ def elMeanDev(data, mask):
     dev = np.sqrt(aux2/(j-1))
     return mean, dev
 
-def azMeanDev(data, mask):
+def azMeanDev(data, difuseness):
+    
+    mask = getMask(data, diffuseness, 0.0)
     
     i=1
     aux_c = 0
@@ -194,7 +199,9 @@ def azMeanDev(data, mask):
     dev = np.sqrt(-2*np.log(R))
     return mean, dev
 
-def getMSE(data, mask, gT):
+def getMSE(data, diffuseness, gT):
+    
+    mask = getMask(data, diffuseness, 0.0)
     
     i=1
     aux = 0
@@ -208,7 +215,10 @@ def getMSE(data, mask, gT):
     
     return MSE
 
-def plotHist2D(azi, ele, mask):
+def plotHist2D(azi, ele, diffuseness):
+    
+    mask = getMask(azi, diffuseness, 0.0)
+    
     plt.figure()
     #plt.suptitle(title)
     i=0
@@ -343,7 +353,7 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     
 #%% Get Path and read audio file
     
-bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(0, 0).wav')
+bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(45, 45).wav')
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
@@ -387,30 +397,24 @@ plotSpectrogram('Elevation', el, 'viridis')
 
 #%% Diffuseness computation
 
-diffuseness = Diffuseness(stft, dt=10)
+diffuseness, energy, intensity = Diffuseness(stft, dt=10)
 plotSpectrogram('Diffuseness', diffuseness, 'viridis')
 
 #%%
 
-azimuth, elevation = readGroundTruth()
+azimuth_gt, elevation_gt = readGroundTruth()
 
-elMask = getMask(el, diffuseness, 0.6)
-azMask = getMask(az, diffuseness, 0.6)
-
-plotSpectrogram('Elevation Mask', elMask, 'viridis')
-plotSpectrogram('Azimuth Mask', azMask, 'viridis')
-
-elMean, elDev = elMeanDev(el,elMask)
-azMean, azDev = azMeanDev(az,azMask)
+elMean, elDev = elMeanDev(el,diffuseness)
+azMean, azDev = azMeanDev(az,diffuseness)
 
 #%%
 
-plotHist2D(az, el, elMask)
+plotHist2D(az, el, diffuseness)
 plotHist2DwMask(az, el)
 
 #%%
 
-azMSE = getMSE(az,azMask, azimuth)
-elMSE = getMSE(el,elMask, elevation)
+azMSE = getMSE(az,diffuseness, azimuth_gt)
+elMSE = getMSE(el,diffuseness, elevation_gt)
 
-writeResults('violin_FUMA_FUMA(0, 0).wav', azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE)
+writeResults('violin_FUMA_FUMA(90, 45).wav', azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE)
