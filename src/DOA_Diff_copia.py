@@ -40,14 +40,15 @@ def getOutputAudioPath(output_filename):
     return output_path
 
 def plotSpectrogram(title, x_fq, colorMap):
+
     plt.figure()
     plt.suptitle(title)
-    plt.pcolormesh(x_fq, cmap = colorMap)
+    plt.pcolormesh(np.abs(x_fq), cmap = colorMap)
 
     plt.colorbar()
     
 def to_dB(x, intensity):
-    signal = np.abs(x.real) + 1e-10
+    signal = np.abs(x.real) + 1e-100
     if intensity == 'Y':
         x_db = 20*np.log(signal)
     elif intensity == 'N':
@@ -100,10 +101,12 @@ def getIntVec(stft):
     p_kn = getPressure(stft)
     u_kn = getVelocityVect(stft)
     
-    Xprime_Size = [np.shape(p_kn)[0],np.shape(p_kn)[1], 3]
-    I = np.empty(Xprime_Size, dtype=np.complex128)
-
-    I = np.real(p_kn * np.conj(u_kn))
+    #Xprime_Size = [np.shape(p_kn)[0],np.shape(p_kn)[1], 3]
+    #I = np.empty(Xprime_Size, dtype=np.complex128)
+    
+    ch, f, t = np.shape(stft)
+    I = np.zeros((ch-1,f,t))
+    I = 0.5*np.real(p_kn * np.conj(u_kn))
     
     return I
 
@@ -128,7 +131,7 @@ def Diffuseness(stft, dt=10):
     diffuseness = np.zeros((K, N))
     for k in range(K):
         for n in range(int(dt / 2), int(N - dt / 2)):
-            num = np.linalg.norm(np.mean(i_kn[:, k, n:n + dt]))
+            num = np.linalg.norm(np.mean(i_kn[:, k, n:n + dt],axis = 1))
             den = c * np.mean(e_kn[k,n:n+dt])
             diffuseness[k,n] = 1-((num)/(den))
             #diffueseness[k,n] = 1 - ((num+1e-10)/(den+1e-10))
@@ -147,7 +150,7 @@ def getMask(data, diffuseness, thr):
     
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
-            if (1-diffuseness[x,y]) > thr:
+            if (diffuseness[x,y]) > thr:
                 mask[x,y] = 1
             else:
                 mask[x,y] = np.nan
@@ -155,7 +158,7 @@ def getMask(data, diffuseness, thr):
 
 def elMeanDev(data, mask):
     
-    mask = getMask(data, diffuseness, 0.0)
+    mask = getMask(data, diffuseness, 0.1)
     
     i=1
     aux = 0
@@ -180,7 +183,7 @@ def elMeanDev(data, mask):
 
 def azMeanDev(data, difuseness):
     
-    mask = getMask(data, diffuseness, 0.0)
+    mask = getMask(data, diffuseness, 0.1)
     
     i=1
     aux_c = 0
@@ -201,7 +204,7 @@ def azMeanDev(data, difuseness):
 
 def getMSE(data, diffuseness, gT):
     
-    mask = getMask(data, diffuseness, 0.0)
+    mask = getMask(data, diffuseness, 0.1)
     
     i=1
     aux = 0
@@ -217,7 +220,8 @@ def getMSE(data, diffuseness, gT):
 
 def plotHist2D(azi, ele, diffuseness):
     
-    mask = getMask(azi, diffuseness, 0.0)
+    mask = getMask(azi, diffuseness, 0.1)
+    
     
     plt.figure()
     #plt.suptitle(title)
@@ -353,7 +357,7 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     
 #%% Get Path and read audio file
     
-bformat_pth = getBFormatAudioPath('violin_FUMA_FUMA(45, 45).wav')
+bformat_pth = getBFormatAudioPath('drums_FUMA_FUMA(45, -45).wav')
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
@@ -398,7 +402,7 @@ plotSpectrogram('Elevation', el, 'viridis')
 #%% Diffuseness computation
 
 diffuseness, energy, intensity = Diffuseness(stft, dt=10)
-plotSpectrogram('Diffuseness', diffuseness, 'viridis')
+plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 

@@ -126,9 +126,9 @@ amb_ord = 1
 
 norm = 'FUMA'
 ch_order = 'FUMA'
-filename = '271053__milanvdmeer__violinsingle-130-4mf-4.wav'
+filename = 'drums.wav'
 
-output_filename = 'violin_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
+output_filename = 'drums_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
 
 #%% Get Path and read audio file
 
@@ -138,6 +138,7 @@ out_path = getOutputAudioPath(output_filename)
 #Read audio file
 data, samplerate = sf.read(path)
 
+data = data[:samplerate,0];
 #%% Normalization
 
 #Get the number of channels the audio will have
