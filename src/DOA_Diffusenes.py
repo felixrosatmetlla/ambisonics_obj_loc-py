@@ -25,19 +25,25 @@ p0 = 1.1839 # kg/m3
 def getBFormatAudioPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
-    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
+    output_path = os.path.join(output_path,'test/output/BFormat_Audios/'+ output_filename) 
+    return output_path
+
+def getGTPath(output_filename):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'test/output/Ground_Truth/'+ output_filename) 
+    return output_path
+
+def getResultsPath(output_filename):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'test/output/Results/'+ output_filename) 
     return output_path
 
 def plotSignal(title, x):
     plt.figure()
     plt.suptitle(title)
     plt.plot(x)
-    
-def getOutputAudioPath(output_filename):
-    output_path = os.getcwd()
-    output_path = os.path.dirname(output_path)
-    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
-    return output_path
 
 def plotSpectrogram(title, x_fq, colorMap):
 
@@ -239,7 +245,7 @@ def plotHist2D(azi, ele, diffuseness):
     mask = getMask(azi, diffuseness, 0.1)
     
     plt.figure()
-    #plt.suptitle(title)
+    plt.suptitle('DOA Histogram 2D w/ Mask')
     i=0
     azimuth = np.empty(1)
     elevation = np.empty(1)
@@ -259,6 +265,7 @@ def plotHist2D(azi, ele, diffuseness):
     plt.colorbar()
     
     plt.figure()
+    plt.suptitle('DOA Histogram 2D w/Mask')
     nbins = [360, 180]
     H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
      
@@ -278,7 +285,7 @@ def plotHist2D(azi, ele, diffuseness):
     
 def plotHist2DwMask(azi, ele):
     plt.figure()
-    #plt.suptitle(title)
+    plt.suptitle('DOA Histogram 2D without mask')
     i=0
     azimuth = np.empty(1)
     elevation = np.empty(1)
@@ -297,6 +304,7 @@ def plotHist2DwMask(azi, ele):
     plt.colorbar()
     
     plt.figure()
+    plt.suptitle('DOA Histogram 2D without mask')
     nbins = [360, 180]
     H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
      
@@ -314,8 +322,9 @@ def plotHist2DwMask(azi, ele):
     cbar = plt.colorbar()
     cbar.ax.set_ylabel('Counts')
     
-def readGroundTruth():
-    path = getBFormatAudioPath('groundTruth.xml')
+def readGroundTruth(filename):
+    file = filename.split(".")
+    path = getGTPath('groundTruth_'+ file[0] + '.xml')
     tree = ET.parse(path)
     root = tree.getroot()
     
@@ -366,13 +375,15 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     eleDev.text = str(elDev)
     eleMSE.text = str(elMSE)
     
-    path = getOutputAudioPath("results.xml")
+    file = filename.split(".")
+    path = getResultsPath("results_" + file[0] + ".xml")
     results = ET.ElementTree(data)
     results.write(path)
     
 #%% Get Path and read audio file
-    
-bformat_pth = getBFormatAudioPath('drums_FUMA_FUMA(180, 0).wav')
+
+filename = 'drums_FUMA_FUMA(45, 0).wav';
+bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
@@ -420,7 +431,7 @@ plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 
-azimuth_gt, elevation_gt = readGroundTruth()
+azimuth_gt, elevation_gt = readGroundTruth(filename)
 
 azMean, azDev = azMeanDev(az,diffuseness)
 elMean, elDev = elMeanDev(el,diffuseness)

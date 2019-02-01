@@ -1,5 +1,0 @@
-GROUND TRUTH
--------------
-Sound File: 271053__milanvdmeer__violinsingle-130-4mf-4.wav
-Azimuth: 0
-Elevation: 0

@@ -24,7 +24,13 @@ def getAudioPath(filename):
 def getOutputAudioPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
-    output_path = os.path.join(output_path,'test/output/'+ output_filename) 
+    output_path = os.path.join(output_path,'test/output/BFormat_Audios/'+ output_filename) 
+    return output_path
+
+def getGTPath(output_filename):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'test/output/Ground_Truth/'+ output_filename) 
     return output_path
 
 def num_channels(amb_order):
@@ -113,13 +119,14 @@ def groundTruth(azi, ele,filenm):
     azimuth.text = str(azi)
     elevation.text = str(ele)
     
-    path = getOutputAudioPath("groundTruth.xml")
+    file = filenm.split(".")
+    path = getGTPath("groundTruth_" + file[0] + ".xml")
     groundtruth = ET.ElementTree(data)
     groundtruth.write(path)
 
 #%% Input variables by user
 
-azimuth = np.pi
+azimuth = np.pi/4
 elevation = 0
 
 amb_ord = 1
@@ -157,7 +164,7 @@ audio = order_channels(ch_order,W,X,Y,Z)
 sf.write(out_path,audio,samplerate)
 
 #Write Ground Truth file
-groundTruth(azimuth, elevation, filename)
+groundTruth(azimuth, elevation, output_filename)
 #%% Plots   
 
 azi = np.arange(0,2*np.pi,0.01)
