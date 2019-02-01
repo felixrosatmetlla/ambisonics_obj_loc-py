@@ -47,6 +47,21 @@ def plotSpectrogram(title, x_fq, colorMap):
 
     plt.colorbar()
     
+def plotDOA(azimuth, elevation):
+    #Plot Azimuth
+    plt.figure()
+    plt.suptitle('DOA: Azimuth')
+    plt.pcolormesh(np.abs(azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
+
+    plt.colorbar()
+    
+    #Plot Elevation
+    plt.figure()
+    plt.suptitle('DOA: Elevation')
+    plt.pcolormesh(np.abs(elevation), cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
+
+    plt.colorbar()
+    
 def to_dB(x, intensity):
     signal = np.abs(x.real) + 1e-100
     if intensity == 'Y':
@@ -143,14 +158,14 @@ def Diffuseness(stft, dt=10):
         for n in range(int(N - dt / 2), N):
             diffuseness[k, n] = diffuseness[k, N - int(dt/2) - 1]
 
-    return diffuseness, e_kn, i_kn
+    return diffuseness
 
 def getMask(data, diffuseness, thr):
     mask = np.empty(np.shape(data))
     
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
-            if (diffuseness[x,y]) > thr:
+            if (diffuseness[x,y]) < thr:
                 mask[x,y] = 1
             else:
                 mask[x,y] = np.nan
@@ -159,7 +174,7 @@ def getMask(data, diffuseness, thr):
 def elMeanDev(data, mask):
     
     mask = getMask(data, diffuseness, 0.1)
-    
+    plotSpectrogram('eleMask', mask, 'viridis');
     i=1
     aux = 0
     for x in range(np.shape(data)[0]):
@@ -184,6 +199,7 @@ def elMeanDev(data, mask):
 def azMeanDev(data, difuseness):
     
     mask = getMask(data, diffuseness, 0.1)
+    plotSpectrogram('aziMask', mask, 'viridis');
     
     i=1
     aux_c = 0
@@ -221,7 +237,6 @@ def getMSE(data, diffuseness, gT):
 def plotHist2D(azi, ele, diffuseness):
     
     mask = getMask(azi, diffuseness, 0.1)
-    
     
     plt.figure()
     #plt.suptitle(title)
@@ -357,7 +372,7 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     
 #%% Get Path and read audio file
     
-bformat_pth = getBFormatAudioPath('drums_FUMA_FUMA(45, -45).wav')
+bformat_pth = getBFormatAudioPath('drums_FUMA_FUMA(180, 0).wav')
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
@@ -396,20 +411,22 @@ plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 #%% Compute the intensity vector and DOA
 
 doa, r, el, az = DOA(stft)
-plotSpectrogram('Azimuth', az,'hsv')
-plotSpectrogram('Elevation', el, 'viridis')
+plotDOA(az,el)
 
 #%% Diffuseness computation
 
-diffuseness, energy, intensity = Diffuseness(stft, dt=10)
+diffuseness = Diffuseness(stft, dt=10)
 plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 
 azimuth_gt, elevation_gt = readGroundTruth()
 
-elMean, elDev = elMeanDev(el,diffuseness)
 azMean, azDev = azMeanDev(az,diffuseness)
+elMean, elDev = elMeanDev(el,diffuseness)
+
+azMSE = getMSE(az,diffuseness, azimuth_gt)
+elMSE = getMSE(el,diffuseness, elevation_gt)
 
 #%%
 
@@ -418,7 +435,4 @@ plotHist2DwMask(az, el)
 
 #%%
 
-azMSE = getMSE(az,diffuseness, azimuth_gt)
-elMSE = getMSE(el,diffuseness, elevation_gt)
-
-writeResults('violin_FUMA_FUMA(90, 45).wav', azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE)
+writeResults('drums_FUMA_FUMA(180, 0).wav', azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE)
