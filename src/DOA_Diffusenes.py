@@ -10,6 +10,7 @@ Created on Sat Dec  8 11:41:24 2018
 import soundfile as sf
 import numpy as np
 import scipy.signal as sig
+from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import os
 import xml.etree.ElementTree as ET
@@ -177,9 +178,9 @@ def getMask(data, diffuseness, thr):
                 mask[x,y] = np.nan
     return mask
 
-def elMeanDev(data, mask):
+def elMeanDev(data, diffuseness, threshold):
     
-    mask = getMask(data, diffuseness, 0.1)
+    mask = getMask(data, diffuseness, threshold)
     plotSpectrogram('eleMask', mask, 'viridis');
     i=1
     aux = 0
@@ -202,9 +203,9 @@ def elMeanDev(data, mask):
     dev = np.sqrt(aux2/(j-1))
     return mean, dev
 
-def azMeanDev(data, difuseness):
+def azMeanDev(data, diffuseness, threshold):
     
-    mask = getMask(data, diffuseness, 0.1)
+    mask = getMask(data, diffuseness, threshold)
     plotSpectrogram('aziMask', mask, 'viridis');
     
     i=1
@@ -224,9 +225,9 @@ def azMeanDev(data, difuseness):
     dev = np.sqrt(-2*np.log(R))
     return mean, dev
 
-def getMSE(data, diffuseness, gT):
+def getMSE(data, diffuseness, gT, threshold):
     
-    mask = getMask(data, diffuseness, 0.1)
+    mask = getMask(data, diffuseness, threshold)
     
     i=1
     aux = 0
@@ -240,9 +241,9 @@ def getMSE(data, diffuseness, gT):
     
     return MSE
 
-def plotHist2D(azi, ele, diffuseness):
+def plotHist2D(azi, ele, diffuseness, threshold):
     
-    mask = getMask(azi, diffuseness, 0.1)
+    mask = getMask(azi, diffuseness, threshold)
     
     plt.figure()
     plt.suptitle('DOA Histogram 2D w/ Mask')
@@ -333,12 +334,13 @@ def readGroundTruth(filename):
     
     return float(azimuth), float(elevation)
 
-def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE):
+def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE, thresh):
     data = ET.Element('data')
     title = ET.SubElement(data,'title')
     filenm = ET.SubElement(data, 'filename')
     azimuth_xml = ET.SubElement(data, 'azimuth')
     elevation_xml = ET.SubElement(data, 'elevation')
+    threshold = ET.SubElement(data, 'threshold')
     
     results = ET.SubElement(data,'results')
     azimuth_ = ET.SubElement(results, 'azimuth')
@@ -354,6 +356,7 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     filenm.set('name','Filename')
     azimuth_xml.set('name','Azimuth')
     elevation_xml.set('name','Elevation')
+    threshold.set('name','Threshold')
     results.set('name','Results')
     azimuth_.set('name','Azimuth')
     elevation_.set('name','Elevation')
@@ -368,6 +371,7 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     filenm.text = filename
     azimuth_xml.text = str(azimuth)
     elevation_xml.text = str(elevation)
+    threshold.text = str(thresh)
     aziMean.text = str(azMean)
     aziDev.text = str(azDev)
     aziMSE.text = str(azMSE)
@@ -380,6 +384,73 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     results = ET.ElementTree(data)
     results.write(path)
     
+def addNoise(data, noise):
+    for i in range(np.shape(data)[0]):
+        for n in range(4):
+            data[i,n] += (random.random()-0.5)*noise
+    
+    return data
+
+def getDoaResults(filename, noise, thr):
+    bformat_pth = getBFormatAudioPath(filename)
+    
+    #Read audio file
+    data, samplerate = sf.read(bformat_pth)
+    data = addNoise(data,1e-5)
+    time, freq, stft = getFreqDomain(data,samplerate,'hann',256)
+    
+    doa, r, el, az = DOA(stft)
+    diffuseness = Diffuseness(stft, dt=10)
+    
+    azimuth_gt, elevation_gt = readGroundTruth(filename)
+
+    azMean, azDev = azMeanDev(az,diffuseness, thr)
+    elMean, elDev = elMeanDev(el,diffuseness, thr)
+    
+    azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
+    elMSE = getMSE(el,diffuseness, elevation_gt, thr)   
+     
+    writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
+    
+    MSE = [azMSE, elMSE]
+    return MSE
+    
+def PlotMSEVariables(mse_results, threshold, noise):
+    plt.figure()
+    plt.suptitle('Azimuth MSE respect Threshold')
+    thr_az = mse_results[:,5,0]
+    plt.plot(threshold,thr_az)
+
+    plt.figure()
+    plt.suptitle('Elevation MSE respect Threshold')
+    thr_el = mse_results[:,5,1]
+    plt.plot(threshold,thr_el)
+
+    plt.figure()
+    plt.suptitle('Azimuth MSE respect Noise')
+    noise_az = mse_results[0,:,0]
+    plt.plot(noise,noise_az)
+
+    plt.figure()
+    plt.suptitle('Elevation MSE respect Noise')
+    noise_el = mse_results[0,:,1]
+    plt.plot(noise,noise_el)    
+    
+    
+    from mpl_toolkits.mplot3d import axes3d    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Plot a basic wireframe.
+    ax.plot_wireframe(noise, threshold, mse_results[:,:,0])
+    
+    plt.show()
+
+        
+    
+    
+    
 #%% Get Path and read audio file
 
 filename = 'drums_FUMA_FUMA(45, 0).wav';
@@ -388,9 +459,7 @@ bformat_pth = getBFormatAudioPath(filename)
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
 
-for i in range(np.shape(data)[0]):
-    for n in range(4):
-        data[i,n] += (random.random()-0.5)*1e-2
+data = addNoise(data,1e-5)
 
 #We get each channel individually
 
@@ -433,17 +502,34 @@ plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 azimuth_gt, elevation_gt = readGroundTruth(filename)
 
-azMean, azDev = azMeanDev(az,diffuseness)
-elMean, elDev = elMeanDev(el,diffuseness)
+thr = 0.1
 
-azMSE = getMSE(az,diffuseness, azimuth_gt)
-elMSE = getMSE(el,diffuseness, elevation_gt)
+azMean, azDev = azMeanDev(az,diffuseness, thr)
+elMean, elDev = elMeanDev(el,diffuseness, thr)
+
+azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
+elMSE = getMSE(el,diffuseness, elevation_gt, thr)
 
 #%%
 
-plotHist2D(az, el, diffuseness)
+plotHist2D(az, el, diffuseness, thr)
 plotHist2DwMask(az, el)
 
 #%%
 
-writeResults('drums_FUMA_FUMA(180, 0).wav', azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE)
+writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
+
+#%%
+filename = 'drums_FUMA_FUMA(45, 0).wav';
+
+thresholds = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
+index=0
+mse_results = np.zeros((np.size(thresholds), np.size(noise),2))
+for thr in range (len(thresholds)):
+    for nse in range (len(noise)):
+        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
+        print(index)
+        index = index +1
+#%%%
+PlotMSEVariables(mse_results, thresholds, noise)      
