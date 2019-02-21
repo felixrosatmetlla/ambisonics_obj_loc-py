@@ -418,32 +418,37 @@ def getDoaResults(filename, noise, thr):
 def PlotMSEVariables(mse_results, threshold, noise):
     plt.figure()
     plt.suptitle('Azimuth MSE respect Threshold')
-    thr_az = mse_results[:,5,0]
-    plt.plot(threshold,thr_az)
+    for nse in range (len(noise)):
+        thr_az = mse_results[:,nse,0]
+        plt.plot(threshold,thr_az)
 
     plt.figure()
     plt.suptitle('Elevation MSE respect Threshold')
-    thr_el = mse_results[:,5,1]
-    plt.plot(threshold,thr_el)
+    for nse in range (len(noise)):
+        thr_el = mse_results[:,nse,1]
+        plt.plot(threshold,thr_el)
 
     plt.figure()
     plt.suptitle('Azimuth MSE respect Noise')
-    noise_az = mse_results[0,:,0]
-    plt.plot(noise,noise_az)
+    for thr in range (len(threshold)):
+        noise_az = mse_results[thr,:,0]
+        plt.plot(noise,noise_az)
 
     plt.figure()
     plt.suptitle('Elevation MSE respect Noise')
-    noise_el = mse_results[0,:,1]
-    plt.plot(noise,noise_el)    
+    for thr in range (len(threshold)):
+        noise_el = mse_results[thr,:,1]
+        plt.plot(noise,noise_el)
     
     
     from mpl_toolkits.mplot3d import axes3d    
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    th, ns = np.meshgrid(threshold, noise)
     
     # Plot a basic wireframe.
-    ax.plot_wireframe(noise, threshold, mse_results[:,:,0])
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    wireframe = ax.plot_wireframe(np.transpose(th),np.transpose(ns), mse_results[:,:,0])
     
     plt.show()
 

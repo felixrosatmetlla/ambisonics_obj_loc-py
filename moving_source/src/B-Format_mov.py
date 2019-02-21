@@ -124,11 +124,12 @@ def groundTruth(azi, ele,filenm):
     groundtruth = ET.ElementTree(data)
     groundtruth.write(path)
 
+
 #%% Input variables by user
 
-azimuth = np.pi/4
+azimuth = [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi]
 elevation = 0
-
+time = [0, 8820, 17640, 26460, 35280, 44100]
 amb_ord = 1
 
 norm = 'FUMA'
@@ -153,7 +154,10 @@ n_ch = num_channels(amb_ord)
 
 #Get the normalization factors based on the order, and the normalization desired by user
 norm_fact = norm_factors(n_ch,amb_ord,norm)
-      
+
+
+
+
 #Apply the normalization to the audio channels
 W,X,Y,Z = toAmbisonics(data,norm_fact)
     
