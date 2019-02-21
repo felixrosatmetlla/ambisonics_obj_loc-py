@@ -10,6 +10,7 @@ import soundfile as sf
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 import os
 import xml.etree.ElementTree as ET
 
@@ -68,11 +69,14 @@ def norm_factors(n_channels,amb_order,norm):
             
     return norm_fact
 
-def toAmbisonics(data,norm_fact):
+def angleInterp(azimuth, elevation, time, interpType):
+    return interpAngle
+    
+def toAmbisonics(data,norm_fact,interpAzimuth, interpElevation):
     W = data*1*norm_fact[0]
-    X = data*math.cos(azimuth)*math.cos(elevation)*norm_fact[3]
-    Y = data*math.sin(azimuth)*math.cos(elevation)*norm_fact[1]
-    Z = data*math.sin(elevation)*norm_fact[2]
+    X = np.multiply(np.multiply(data,np.cos(interpAzimuth)),np.cos(interpElevation))*norm_fact[3]
+    Y = np.multiply(np.multiply(data, np.sin(interpAzimuth)) , np.cos(interpElevation))*norm_fact[1]
+    Z = np.multiply(data, np.sin(interpElevation))*norm_fact[2]
     
     return W,X,Y,Z
 
@@ -127,8 +131,8 @@ def groundTruth(azi, ele,filenm):
 
 #%% Input variables by user
 
-azimuth = [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi]
-elevation = 0
+azimuth = [0, np.pi/6, np.pi/6*2, 3*np.pi/6, 4*np.pi/6, 5*np.pi/6]
+elevation = [0,0,0,0,0,0]
 time = [0, 8820, 17640, 26460, 35280, 44100]
 amb_ord = 1
 
@@ -136,7 +140,7 @@ norm = 'FUMA'
 ch_order = 'FUMA'
 filename = 'drums.wav'
 
-output_filename = 'drums_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)
+output_filename = 'drums_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth[0]*180/math.pi, elevation[0]*180/math.pi)
 
 #%% Get Path and read audio file
 
@@ -156,10 +160,21 @@ n_ch = num_channels(amb_ord)
 norm_fact = norm_factors(n_ch,amb_ord,norm)
 
 
+x = time
+y = azimuth
+f = interp1d(x, y)
+newAzi = np.linspace(0, 44100, num=44100, endpoint=True)
 
+x = time
+y = elevation
+f = interp1d(x, y)
+newEle = np.linspace(0, 44100, num=44100, endpoint=True)
+
+interpAzi = f(newAzi)
+interpEle = f(newEle)
 
 #Apply the normalization to the audio channels
-W,X,Y,Z = toAmbisonics(data,norm_fact)
+W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)
     
 #Order the channels in the desired format      
 audio = order_channels(ch_order,W,X,Y,Z)
