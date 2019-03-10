@@ -69,7 +69,13 @@ def norm_factors(n_channels,amb_order,norm):
             
     return norm_fact
 
-def angleInterp(azimuth, elevation, time, interpType):
+def angleInterp(angle, time):
+    x = time
+    y = angle
+    f = interp1d(x, y)
+    newAngle = np.arange(0, 44100)
+    interpAngle = f(newAngle)
+    
     return interpAngle
     
 def toAmbisonics(data,norm_fact,interpAzimuth, interpElevation):
@@ -131,8 +137,8 @@ def groundTruth(azi, ele,filenm):
 
 #%% Input variables by user
 
-azimuth = [0, np.pi/6, np.pi/6*2, 3*np.pi/6, 4*np.pi/6, 5*np.pi/6]
-elevation = [0,0,0,0,0,0]
+azimuth = [0, np.pi/6, np.pi/6*4, 5*np.pi/6, -4*np.pi/6, 5*np.pi/6]
+elevation = [np.pi/4,0,np.pi/5,0,-np.pi/3,0]
 time = [0, 8820, 17640, 26460, 35280, 44100]
 amb_ord = 1
 
@@ -159,19 +165,8 @@ n_ch = num_channels(amb_ord)
 #Get the normalization factors based on the order, and the normalization desired by user
 norm_fact = norm_factors(n_ch,amb_ord,norm)
 
-
-x = time
-y = azimuth
-f = interp1d(x, y)
-newAzi = np.linspace(0, 44100, num=44100, endpoint=True)
-
-x = time
-y = elevation
-f = interp1d(x, y)
-newEle = np.linspace(0, 44100, num=44100, endpoint=True)
-
-interpAzi = f(newAzi)
-interpEle = f(newEle)
+interpAzi = angleInterp(azimuth, time)
+interpEle = angleInterp(elevation, time)
 
 #Apply the normalization to the audio channels
 W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)

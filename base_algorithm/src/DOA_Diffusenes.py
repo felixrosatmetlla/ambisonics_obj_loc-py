@@ -10,6 +10,7 @@ Created on Sat Dec  8 11:41:24 2018
 import soundfile as sf
 import numpy as np
 import scipy.signal as sig
+import scipy as sc
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import os
@@ -209,20 +210,18 @@ def azMeanDev(data, diffuseness, threshold):
     plotSpectrogram('aziMask', mask, 'viridis');
     
     i=1
-    aux_c = 0
-    aux_s = 0 
+    aux_mean = np.array([[]])
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
             if mask[x,y] == 1:
-                aux_c = aux_c + np.cos(data[x,y])
-                aux_s = aux_s + np.sin(data[x,y])
+                aux_mean = np.concatenate((aux_mean, np.array([[mask[x,y]]])),axis=1)
                 i = i+1
-    C = aux_c/i
-    S = aux_s/i
-    mean = np.arctan2(S,C)
     
-    R = np.sqrt((np.power(C,2) + np.power(S,2)))
-    dev = np.sqrt(-2*np.log(R))
+
+    mean = sc.stats.circmean(aux_mean,high=2*np.pi,low=0)
+    
+
+    dev = sc.stats.circstd(aux_mean,high=2*np.pi,low=0)
     return mean, dev
 
 def getMSE(data, diffuseness, gT, threshold):
@@ -417,29 +416,38 @@ def getDoaResults(filename, noise, thr):
     
 def PlotMSEVariables(mse_results, threshold, noise):
     plt.figure()
+    plt.grid()
     plt.suptitle('Azimuth MSE respect Threshold')
     for nse in range (len(noise)):
         thr_az = mse_results[:,nse,0]
-        plt.plot(threshold,thr_az)
+        plt.plot(threshold,thr_az,label="Noise %f"%(noise[nse]))
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Elevation MSE respect Threshold')
     for nse in range (len(noise)):
         thr_el = mse_results[:,nse,1]
-        plt.plot(threshold,thr_el)
+        plt.plot(threshold,thr_el,label="Noise %f"%(noise[nse]))
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Azimuth MSE respect Noise')
     for thr in range (len(threshold)):
         noise_az = mse_results[thr,:,0]
-        plt.plot(noise,noise_az)
+        plt.plot(noise,noise_az,label="Threshold %f"%(threshold[thr]))
+        plt.xscale('log')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Elevation MSE respect Noise')
     for thr in range (len(threshold)):
         noise_el = mse_results[thr,:,1]
-        plt.plot(noise,noise_el)
-    
+        plt.plot(noise,noise_el,label="Threshold %f"%(threshold[thr]))
+        plt.xscale('log')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     
     from mpl_toolkits.mplot3d import axes3d    
     
@@ -448,8 +456,8 @@ def PlotMSEVariables(mse_results, threshold, noise):
     # Plot a basic wireframe.
     fig = plt.figure()
     ax = fig.gca(projection='3d')
+    ax.invert_yaxis()
     wireframe = ax.plot_wireframe(np.transpose(th),np.transpose(ns), mse_results[:,:,0])
-    
     plt.show()
 
         

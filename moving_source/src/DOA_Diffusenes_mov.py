@@ -10,6 +10,7 @@ Created on Sat Dec  8 11:41:24 2018
 import soundfile as sf
 import numpy as np
 import scipy.signal as sig
+import scipy as sc
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import os
@@ -58,7 +59,7 @@ def plotDOA(azimuth, elevation):
     #Plot Azimuth
     plt.figure()
     plt.suptitle('DOA: Azimuth')
-    plt.pcolormesh(np.abs(azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
+    plt.pcolormesh((azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
 
     plt.colorbar()
     
@@ -209,20 +210,18 @@ def azMeanDev(data, diffuseness, threshold):
     plotSpectrogram('aziMask', mask, 'viridis');
     
     i=1
-    aux_c = 0
-    aux_s = 0 
+    aux_mean = np.array([[]])
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
             if mask[x,y] == 1:
-                aux_c = aux_c + np.cos(data[x,y])
-                aux_s = aux_s + np.sin(data[x,y])
+                aux_mean = np.concatenate((aux_mean, np.array([[mask[x,y]]])),axis=1)
                 i = i+1
-    C = aux_c/i
-    S = aux_s/i
-    mean = np.arctan2(S,C)
     
-    R = np.sqrt((np.power(C,2) + np.power(S,2)))
-    dev = np.sqrt(-2*np.log(R))
+
+    mean = sc.stats.circmean(aux_mean,high=2*np.pi,low=0)
+    
+
+    dev = sc.stats.circstd(aux_mean,high=2*np.pi,low=0)
     return mean, dev
 
 def getMSE(data, diffuseness, gT, threshold):
@@ -417,34 +416,48 @@ def getDoaResults(filename, noise, thr):
     
 def PlotMSEVariables(mse_results, threshold, noise):
     plt.figure()
+    plt.grid()
     plt.suptitle('Azimuth MSE respect Threshold')
-    thr_az = mse_results[:,5,0]
-    plt.plot(threshold,thr_az)
+    for nse in range (len(noise)):
+        thr_az = mse_results[:,nse,0]
+        plt.plot(threshold,thr_az,label="Noise %f"%(noise[nse]))
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Elevation MSE respect Threshold')
-    thr_el = mse_results[:,5,1]
-    plt.plot(threshold,thr_el)
+    for nse in range (len(noise)):
+        thr_el = mse_results[:,nse,1]
+        plt.plot(threshold,thr_el,label="Noise %f"%(noise[nse]))
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Azimuth MSE respect Noise')
-    noise_az = mse_results[0,:,0]
-    plt.plot(noise,noise_az)
+    for thr in range (len(threshold)):
+        noise_az = mse_results[thr,:,0]
+        plt.plot(noise,noise_az,label="Threshold %f"%(threshold[thr]))
+        plt.xscale('log')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
     plt.figure()
+    plt.grid()
     plt.suptitle('Elevation MSE respect Noise')
-    noise_el = mse_results[0,:,1]
-    plt.plot(noise,noise_el)    
-    
+    for thr in range (len(threshold)):
+        noise_el = mse_results[thr,:,1]
+        plt.plot(noise,noise_el,label="Threshold %f"%(threshold[thr]))
+        plt.xscale('log')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     
     from mpl_toolkits.mplot3d import axes3d    
     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    th, ns = np.meshgrid(threshold, noise)
     
     # Plot a basic wireframe.
-    ax.plot_wireframe(noise, threshold, mse_results[:,:,0])
-    
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.invert_yaxis()
+    wireframe = ax.plot_wireframe(np.transpose(th),np.transpose(ns), mse_results[:,:,0])
     plt.show()
 
         
@@ -453,7 +466,7 @@ def PlotMSEVariables(mse_results, threshold, noise):
     
 #%% Get Path and read audio file
 
-filename = 'drums_FUMA_FUMA(45, 0).wav';
+filename = 'drums_FUMA_FUMA(0, 45).wav';
 bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
@@ -475,7 +488,7 @@ plotSignal('Waveform Z',Z)
 
 #%% We use STFT to get frequency domain of each channel
 
-time, freq, stft = getFreqDomain(data,samplerate,'hann',256)
+freq, time, stft = getFreqDomain(data,samplerate,'hann',256)
 
 #plotSpectrogram
 W_fq_db = to_dB(stft[0,:,:], 'N')
@@ -487,11 +500,32 @@ plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
 plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
 plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
 plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
+#%%
+doas, rs, els, azs = DOA(stft)
+plotDOA(azs,els)
 
+N = stft.shape[2]
+mov_azi = np.zeros(N)
+
+
+mov_azi = np.mean(azs, axis=0)
+plt.figure()     
+plt.plot(mov_azi)    
 #%% Compute the intensity vector and DOA
 
-doa, r, el, az = DOA(stft)
-plotDOA(az,el)
+K = stft.shape[1]
+N = stft.shape[2]
+
+
+
+for t in range(N):
+    if(t<10):
+        doas, rs, els, azs = DOA(stft[:,:,0:(t+10)])
+    elif(t>N-10):
+        doas, rs, els, azs = DOA(stft[:,:,(t-10):(N-1)])
+    else:
+        doas, rs, els, azs = DOA(stft[:,:,(t-10):(t+10)])
+    plotDOA(azs,els)
 
 #%% Diffuseness computation
 
