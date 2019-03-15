@@ -11,6 +11,7 @@ import soundfile as sf
 import numpy as np
 import scipy.signal as sig
 import scipy as sc
+import math
 from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 import os
@@ -173,7 +174,7 @@ def getMask(data, diffuseness, thr):
     
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
-            if (diffuseness[x,y]) < thr:
+            if (diffuseness[x,y]) <= thr:
                 mask[x,y] = 1
             else:
                 mask[x,y] = np.nan
@@ -390,7 +391,7 @@ def addNoise(data, noise):
     
     return data
 
-def getDoaResults(filename, noise, thr):
+def getDoaResults(filename, thr, noise):
     bformat_pth = getBFormatAudioPath(filename)
     
     #Read audio file
@@ -401,7 +402,7 @@ def getDoaResults(filename, noise, thr):
     doa, r, el, az = DOA(stft)
     diffuseness = Diffuseness(stft, dt=10)
     
-    azimuth_gt, elevation_gt = readGroundTruth(filename)
+    r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
 
     azMean, azDev = azMeanDev(az,diffuseness, thr)
     elMean, elDev = elMeanDev(el,diffuseness, thr)
@@ -460,13 +461,19 @@ def PlotMSEVariables(mse_results, threshold, noise):
     wireframe = ax.plot_wireframe(np.transpose(th),np.transpose(ns), mse_results[:,:,0])
     plt.show()
 
-        
+def cart2sph(x,y,z):
+    XsqPlusYsq = x**2 + y**2
+    r = math.sqrt(XsqPlusYsq + z**2)               # r
+    elev = math.atan2(z,math.sqrt(XsqPlusYsq))     # theta
+    az = math.atan2(y,x)                           # phi
+    
+    return r, elev, az        
     
     
     
 #%% Get Path and read audio file
 
-filename = 'drums_FUMA_FUMA(45, 0).wav';
+filename = 'drums_FUMA_FUMA(90, 0).wav';
 bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
@@ -513,8 +520,7 @@ plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 
-azimuth_gt, elevation_gt = readGroundTruth(filename)
-
+r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
 thr = 0.1
 
 azMean, azDev = azMeanDev(az,diffuseness, thr)
@@ -533,16 +539,16 @@ plotHist2DwMask(az, el)
 writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
 
 #%%
-filename = 'drums_FUMA_FUMA(45, 0).wav';
+filename = 'drums_FUMA_FUMA(90, 0).wav';
 
-thresholds = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
 index=0
 mse_results = np.zeros((np.size(thresholds), np.size(noise),2))
 for thr in range (len(thresholds)):
     for nse in range (len(noise)):
-        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
         print(index)
+        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
         index = index +1
 #%%%
 PlotMSEVariables(mse_results, thresholds, noise)      

@@ -132,11 +132,19 @@ def groundTruth(azi, ele,filenm):
     groundtruth = ET.ElementTree(data)
     groundtruth.write(path)
 
+def cart2sph(x,y,z):
+    XsqPlusYsq = x**2 + y**2
+    r = math.sqrt(XsqPlusYsq + z**2)               # r
+    elev = math.atan2(z,math.sqrt(XsqPlusYsq))     # theta
+    az = math.atan2(y,x)                           # phi
+    
+    return r, elev, az
 #%% Input variables by user
 
-azimuth = np.pi/4
-elevation = 0
+#azimuth = np.pi/4
+#elevation = 0
 
+r, elevation, azimuth = cart2sph(0,5,0.06)
 amb_ord = 1
 
 norm = 'FUMA'
@@ -168,13 +176,13 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 rev = True
 rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'
 
-if rev == True:
-    reverbData, revSamplerate = sf.read(rev_file_path)
-    W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
+#if rev == True:
+reverbData, revSamplerate = sf.read(rev_file_path)
+W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
     
-else:
+#else:
     #Apply the normalization to the audio channels
-    W,X,Y,Z = toAmbisonics(data,norm_fact)
+#W,X,Y,Z = toAmbisonics(data,norm_fact)
     
 #Order the channels in the desired format      
 audio = order_channels(ch_order,W,X,Y,Z)
