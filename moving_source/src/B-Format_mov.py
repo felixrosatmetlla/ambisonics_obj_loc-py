@@ -86,6 +86,13 @@ def toAmbisonics(data,norm_fact,interpAzimuth, interpElevation):
     
     return W,X,Y,Z
 
+def toAmbisonicsMovReverb(data,norm_fact, interpAzimuth, interpElevation, reverbW):
+    W = np.convolve(data, reverbW)*1*norm_fact[0]
+    X = np.convolve(np.multiply(np.multiply(data,np.cos(interpAzimuth)),np.cos(interpElevation)),reverbW)*norm_fact[3]
+    Y = np.convolve(np.multiply(np.multiply(data, np.sin(interpAzimuth)) , np.cos(interpElevation)),reverbW)*norm_fact[1]
+    Z = np.convolve(np.multiply(data, np.sin(interpElevation)), reverbW)*norm_fact[2]
+    
+    return W,X,Y,Z
 def order_channels(ch_order,W,X,Y,Z):
     if ch_order=='FUMA':
         audio = np.vstack((W,X,Y,Z))
@@ -157,6 +164,8 @@ out_path = getOutputAudioPath(output_filename)
 data, samplerate = sf.read(path)
 
 data = data[:samplerate,0];
+
+
 #%% Normalization
 
 #Get the number of channels the audio will have
@@ -168,8 +177,19 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 interpAzi = angleInterp(azimuth, time)
 interpEle = angleInterp(elevation, time)
 
-#Apply the normalization to the audio channels
-W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)
+
+#%%
+rev = True
+rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'
+
+#if rev == True:
+reverbData, revSamplerate = sf.read(rev_file_path)
+reverbW = reverbData[:,0]
+
+W,X,Y,Z = toAmbisonicsMovReverb(data,norm_fact, interpAzi, interpEle,reverbW)
+#
+##Apply the normalization to the audio channels
+#W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)
     
 #Order the channels in the desired format      
 audio = order_channels(ch_order,W,X,Y,Z)

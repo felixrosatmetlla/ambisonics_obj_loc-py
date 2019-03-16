@@ -174,7 +174,7 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 #%%
 
 rev = True
-rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'
+rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/Vislab/Soundfield/ls2.wav'
 
 #if rev == True:
 reverbData, revSamplerate = sf.read(rev_file_path)

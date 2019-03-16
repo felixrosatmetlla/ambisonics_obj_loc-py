@@ -173,7 +173,7 @@ def getMask(data, diffuseness, thr):
     
     for x in range(np.shape(data)[0]):
         for y in range(np.shape(data)[1]):
-            if (diffuseness[x,y]) < thr:
+            if (diffuseness[x,y]) <= thr:
                 mask[x,y] = 1
             else:
                 mask[x,y] = np.nan
@@ -390,7 +390,7 @@ def addNoise(data, noise):
     
     return data
 
-def getDoaResults(filename, noise, thr):
+def getDoaResults(filename, thr, noise):
     bformat_pth = getBFormatAudioPath(filename)
     
     #Read audio file
@@ -518,14 +518,14 @@ N = stft.shape[2]
 
 
 
-for t in range(N):
-    if(t<10):
-        doas, rs, els, azs = DOA(stft[:,:,0:(t+10)])
-    elif(t>N-10):
-        doas, rs, els, azs = DOA(stft[:,:,(t-10):(N-1)])
-    else:
-        doas, rs, els, azs = DOA(stft[:,:,(t-10):(t+10)])
-    plotDOA(azs,els)
+#for t in range(N):
+#    if(t<10):
+#        doas, rs, els, azs = DOA(stft[:,:,0:(t+10)])
+#    elif(t>N-10):
+#        doas, rs, els, azs = DOA(stft[:,:,(t-10):(N-1)])
+#    else:
+#        doas, rs, els, azs = DOA(stft[:,:,(t-10):(t+10)])
+#    plotDOA(azs,els)
 
 #%% Diffuseness computation
 
@@ -554,16 +554,16 @@ plotHist2DwMask(az, el)
 writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
 
 #%%
-filename = 'drums_FUMA_FUMA(45, 0).wav';
+filename = 'drums_FUMA_FUMA(0, 45).wav';
 
-thresholds = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
 index=0
 mse_results = np.zeros((np.size(thresholds), np.size(noise),2))
 for thr in range (len(thresholds)):
     for nse in range (len(noise)):
-        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
         print(index)
+        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
         index = index +1
 #%%%
 PlotMSEVariables(mse_results, thresholds, noise)      
