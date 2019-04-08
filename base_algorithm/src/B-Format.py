@@ -12,6 +12,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 import xml.etree.ElementTree as ET
+import acoustics
 
 #%%
 
@@ -139,12 +140,13 @@ def cart2sph(x,y,z):
     az = math.atan2(y,x)                           # phi
     
     return r, elev, az
+
 #%% Input variables by user
 
 #azimuth = np.pi/4
 #elevation = 0
 
-r, elevation, azimuth = cart2sph(0,5,0.06)
+r, elevation, azimuth = cart2sph(-4.7,-1.71,0.06)
 amb_ord = 1
 
 norm = 'FUMA'
@@ -174,12 +176,15 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 #%%
 
 rev = True
-rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/Vislab/Soundfield/ls2.wav'
+rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls7.wav'
 
 #if rev == True:
 reverbData, revSamplerate = sf.read(rev_file_path)
 W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
-    
+#%%
+rt_60 = acoustics.room.t60_impulse(rev_file_path, acoustics.bands.octave(63, 8000))
+
+#%%
 #else:
     #Apply the normalization to the audio channels
 #W,X,Y,Z = toAmbisonics(data,norm_fact)

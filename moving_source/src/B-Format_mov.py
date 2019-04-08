@@ -144,8 +144,8 @@ def groundTruth(azi, ele,filenm):
 
 #%% Input variables by user
 
-azimuth = [0, np.pi/6, np.pi/6*4, 5*np.pi/6, -4*np.pi/6, 5*np.pi/6]
-elevation = [np.pi/4,0,np.pi/5,0,-np.pi/3,0]
+azimuth = [0, np.pi/4, np.pi/2, np.pi, 0, 0]
+elevation = [0,0,0,0,0,0]
 time = [0, 8820, 17640, 26460, 35280, 44100]
 amb_ord = 1
 
@@ -177,7 +177,7 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 interpAzi = angleInterp(azimuth, time)
 interpEle = angleInterp(elevation, time)
 
-
+plt.plot(interpAzi)
 #%%
 rev = True
 rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'

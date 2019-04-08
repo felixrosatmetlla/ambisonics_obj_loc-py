@@ -520,7 +520,7 @@ plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 
-r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
+r, elevation_gt, azimuth_gt = cart2sph(-4.7,-1.71,0.06)
 thr = 0.1
 
 azMean, azDev = azMeanDev(az,diffuseness, thr)

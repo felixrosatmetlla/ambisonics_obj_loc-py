@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import os
 import xml.etree.ElementTree as ET
 import random
+import math
+from scipy.interpolate import interp1d
+
 
 #%% Global Variables
 
@@ -461,12 +464,19 @@ def PlotMSEVariables(mse_results, threshold, noise):
     plt.show()
 
         
+def angleInterp(angle, time):
+    x = time
+    y = angle
+    f = interp1d(x, y)
+    newAngle = np.arange(0, 44100)
+    interpAngle = f(newAngle)
     
+    return interpAngle    
     
     
 #%% Get Path and read audio file
 
-filename = 'drums_FUMA_FUMA(0, 45).wav';
+filename = 'drums_FUMA_FUMA(0, 0).wav';
 bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
@@ -501,16 +511,104 @@ plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
 plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
 plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 #%%
+
+azimuth = [0, np.pi/4, np.pi/2, np.pi, 0, 0]
+elevation = [0,0,0,0,0,0]
+time = [0, 8820, 17640, 26460, 35280, 44100]
+interpAzi = angleInterp(azimuth, time)
+interpEle = angleInterp(elevation, time)
+
+plt.figure()  
+plt.plot(interpAzi)
+#%%
 doas, rs, els, azs = DOA(stft)
 plotDOA(azs,els)
 
 N = stft.shape[2]
+
 mov_azi = np.zeros(N)
-
-
 mov_azi = np.mean(azs, axis=0)
 plt.figure()     
-plt.plot(mov_azi)    
+plt.plot(mov_azi)
+
+mov_els = np.zeros(N)
+mov_els = np.mean(els, axis=0)
+plt.figure()     
+plt.plot(mov_els)
+
+#%%
+tempEnergy = np.empty(math.ceil(len(W)/128))
+i = 0
+for x in range(0,len(W),128):
+    if x==0:
+        tempEnergy[i] = np.mean(np.power(W[x:128],2))
+    
+    elif x==len(W)-128:
+        tempEnergy[i] = np.mean(np.power(W[x:len(W)],2))
+    
+    else:
+        tempEnergy[i] = np.mean(np.power(W[x-128:x+128],2))
+    
+    i = i+1
+
+plt.plot(tempEnergy)
+#%%
+GTinterpAzi = np.empty(math.ceil(44100/128))
+i = 0
+for x in range (0,len(interpAzi),128):
+    if x==0:
+        GTinterpAzi[i] = np.mean(interpAzi[x:128])
+    
+    elif x==len(interpAzi)-128:
+        GTinterpAzi[i] = np.mean(interpAzi[x:len(interpAzi)])
+    
+    else:
+        GTinterpAzi[i] = np.mean(interpAzi[x-128:x+128])
+    
+    i = i+1
+    
+errors_azi = np.empty(len(mov_azi)) 
+for x in range (0,len(tempEnergy)):
+    if(tempEnergy[x] > 0.001):
+        if(x>len(GTinterpAzi)-1):
+            errors_azi[x] = np.abs(0-mov_azi[x])
+        else:
+            errors_azi[x] = np.abs(GTinterpAzi[x]-mov_azi[x])
+    else:
+        errors_azi[x] = np.nan
+        
+plt.figure()
+plt.plot(errors_azi)
+
+#%%
+GTinterpEle = np.empty(math.ceil(44100/128))
+i = 0
+for x in range (0,len(interpEle),128):
+    if x==0:
+        GTinterpEle[i] = np.mean(interpEle[x:128])
+    
+    elif x==len(interpAzi)-128:
+        GTinterpEle[i] = np.mean(interpEle[x:len(interpAzi)])
+    
+    else:
+        GTinterpEle[i] = np.mean(interpEle[x-128:x+128])
+    
+    i = i+1
+    
+#threshold => peak %
+errors_ele = np.empty(len(mov_els)) 
+for x in range (0,len(tempEnergy)):
+    if(tempEnergy[x] > 0.001):
+        if(x>len(GTinterpEle)-1):
+            errors_ele[x] = np.abs(0-mov_els[x])
+        else:
+            errors_ele[x] = np.abs(GTinterpEle[x]-mov_els[x])
+    else:
+        errors_ele[x] = np.nan
+    
+plt.figure()
+plt.plot(errors_ele)
+
 #%% Compute the intensity vector and DOA
 
 K = stft.shape[1]
