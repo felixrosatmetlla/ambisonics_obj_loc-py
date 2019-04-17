@@ -110,16 +110,18 @@ def signal_gain(gain):
     gain_neg = np.abs(gain_neg)
     return gain_pos, gain_neg
 
-def groundTruth(azi, ele,filenm):
+def groundTruth(azi, ele,filenm, rev):
     
     data = ET.Element('data')
     title = ET.SubElement(data,'title')
     filename = ET.SubElement(data,'filename')
+    reverb = ET.SubElement(data, 'reverb')
     azimuth = ET.SubElement(data, 'azimuth')
     elevation = ET.SubElement(data, 'elevation')
     
     title.set('name','GroundTruth')
     filename.set('name','Filename')
+    reverb.set('name', 'Reverb')
     azimuth.set('name','Azimuth')
     elevation.set('name','Elevation')
     
@@ -127,6 +129,10 @@ def groundTruth(azi, ele,filenm):
     filename.text = filenm
     azimuth.text = str(azi)
     elevation.text = str(ele)
+    if(rev == True):
+        reverb.text = str(rev)
+    elif(rev == False):
+        reverb.text = str(rev)
     
     file = filenm.split(".")
     path = getGTPath("groundTruth_" + file[0] + ".xml")
@@ -142,11 +148,17 @@ def cart2sph(x,y,z):
     return r, elev, az
 
 #%% Input variables by user
+rev = True
 
-#azimuth = np.pi/4
-#elevation = 0
+if rev == True:
+    rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls7.wav'
+    r, elevation, azimuth = cart2sph(-4.7,-1.71,0.06)
 
-r, elevation, azimuth = cart2sph(-4.7,-1.71,0.06)
+elif rev == False:
+    azimuth = np.pi/4
+    elevation = 0
+    
+
 amb_ord = 1
 
 norm = 'FUMA'
@@ -163,7 +175,7 @@ out_path = getOutputAudioPath(output_filename)
 #Read audio file
 data, samplerate = sf.read(path)
 
-data = data[:samplerate,0];
+data = data[:samplerate,0]
 #%% Normalization
 
 #Get the number of channels the audio will have
@@ -175,19 +187,14 @@ norm_fact = norm_factors(n_ch,amb_ord,norm)
 
 #%%
 
-rev = True
-rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls7.wav'
+if rev == True:
+    reverbData, revSamplerate = sf.read(rev_file_path)
+    W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
+    rt_60 = acoustics.room.t60_impulse(rev_file_path, acoustics.bands.octave(63, 8000))
 
-#if rev == True:
-reverbData, revSamplerate = sf.read(rev_file_path)
-W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
+elif rev == False:
+    W,X,Y,Z = toAmbisonics(data,norm_fact)
 #%%
-rt_60 = acoustics.room.t60_impulse(rev_file_path, acoustics.bands.octave(63, 8000))
-
-#%%
-#else:
-    #Apply the normalization to the audio channels
-#W,X,Y,Z = toAmbisonics(data,norm_fact)
     
 #Order the channels in the desired format      
 audio = order_channels(ch_order,W,X,Y,Z)
@@ -196,7 +203,7 @@ audio = order_channels(ch_order,W,X,Y,Z)
 sf.write(out_path,audio,samplerate)
 
 #Write Ground Truth file
-groundTruth(azimuth, elevation, output_filename)
+groundTruth(azimuth, elevation, output_filename, rev)
 #%% Plots   
 
 azi = np.arange(0,2*np.pi,0.01)

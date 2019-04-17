@@ -331,16 +331,19 @@ def readGroundTruth(filename):
     
     azimuth = root.findtext('azimuth')
     elevation = root.findtext('elevation')
+    reverb = root.findtext('reverb')
     
-    return float(azimuth), float(elevation)
+    return float(azimuth), float(elevation), bool(reverb)
 
-def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azMSE, elMSE, thresh):
+def writeResults(filename, azimuth, elevation,reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thresh, noise):
     data = ET.Element('data')
     title = ET.SubElement(data,'title')
     filenm = ET.SubElement(data, 'filename')
+    reverb_xml = ET.SubElement(data, 'reverb')
     azimuth_xml = ET.SubElement(data, 'azimuth')
     elevation_xml = ET.SubElement(data, 'elevation')
     threshold = ET.SubElement(data, 'threshold')
+    noise_xml = ET.SubElement(data, 'noise')
     
     results = ET.SubElement(data,'results')
     azimuth_ = ET.SubElement(results, 'azimuth')
@@ -352,11 +355,14 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     eleDev = ET.SubElement(elevation_, 'Deviation')
     eleMSE = ET.SubElement(elevation_, 'MSE')
     
+    
     title.set('name','GroundTruth')
     filenm.set('name','Filename')
+    reverb_xml.set('name', 'Reverb')
     azimuth_xml.set('name','Azimuth')
     elevation_xml.set('name','Elevation')
     threshold.set('name','Threshold')
+    noise_xml.set('name', 'Noise')
     results.set('name','Results')
     azimuth_.set('name','Azimuth')
     elevation_.set('name','Elevation')
@@ -372,12 +378,17 @@ def writeResults(filename, azimuth, elevation, azMean, azDev, elMean, elDev, azM
     azimuth_xml.text = str(azimuth)
     elevation_xml.text = str(elevation)
     threshold.text = str(thresh)
+    noise_xml.text = str(noise) 
     aziMean.text = str(azMean)
     aziDev.text = str(azDev)
     aziMSE.text = str(azMSE)
     eleMean.text = str(elMean)
     eleDev.text = str(elDev)
     eleMSE.text = str(elMSE)
+    if(reverb == True):
+        reverb_xml.text = str(reverb)
+    elif(reverb == False):
+        reverb_xml.text = str(reverb)
     
     file = filename.split(".")
     path = getResultsPath("results_" + file[0] + ".xml")
@@ -402,15 +413,18 @@ def getDoaResults(filename, thr, noise):
     doa, r, el, az = DOA(stft)
     diffuseness = Diffuseness(stft, dt=10)
     
-    r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
+#    r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
+    azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
 
     azMean, azDev = azMeanDev(az,diffuseness, thr)
     elMean, elDev = elMeanDev(el,diffuseness, thr)
     
     azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
     elMSE = getMSE(el,diffuseness, elevation_gt, thr)   
-     
-    writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
+    
+    file = filename.split(".")
+    resultsFilename = file[0] + '_thr'+ str(thr) + '_nse' + str(noise)+'.wav'
+    writeResults(resultsFilename, azimuth_gt, elevation_gt, reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thr, noise)
     
     MSE = [azMSE, elMSE]
     return MSE
@@ -473,14 +487,18 @@ def cart2sph(x,y,z):
     
 #%% Get Path and read audio file
 
-filename = 'drums_FUMA_FUMA(90, 0).wav';
+filename = 'drums_FUMA_FUMA(-160, 0).wav';
 bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
 data, samplerate = sf.read(bformat_pth)
 
-data = addNoise(data,1e-5)
+thr = 0.1
+noise = 1e-5
 
+data = addNoise(data,noise)
+
+#%%
 #We get each channel individually
 
 W = data[:,0]
@@ -520,8 +538,10 @@ plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
 
 #%%
 
-r, elevation_gt, azimuth_gt = cart2sph(-4.7,-1.71,0.06)
-thr = 0.1
+#r, elevation_gt, azimuth_gt = cart2sph(-4.7,-1.71,0.06)
+azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
+
+#%%
 
 azMean, azDev = azMeanDev(az,diffuseness, thr)
 elMean, elDev = elMeanDev(el,diffuseness, thr)
@@ -535,11 +555,11 @@ plotHist2D(az, el, diffuseness, thr)
 plotHist2DwMask(az, el)
 
 #%%
-
-writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
+file = filename.split(".")
+resultsFilename = file[0] + '_thr'+ str(thr) + '_nse' + str(noise)+'.wav'
+writeResults(resultsFilename, azimuth_gt, elevation_gt, reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
 
 #%%
-filename = 'drums_FUMA_FUMA(90, 0).wav';
 
 thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
@@ -550,5 +570,5 @@ for thr in range (len(thresholds)):
         print(index)
         mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
         index = index +1
-#%%%
+        
 PlotMSEVariables(mse_results, thresholds, noise)      
