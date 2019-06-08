@@ -37,39 +37,79 @@ def getGTPath(output_filename):
     output_path = os.path.join(output_path,'test/output/Ground_Truth/'+ output_filename) 
     return output_path
 
+def getPlotPath(output_filename, thr, noise, azi_gt,ele_gt):
+    output_path = os.getcwd()
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.dirname(output_path)
+    output_path = os.path.join(output_path,'Memory/Plots/%.2f_%.2f/%.2f_%.6f'%(azi_gt,ele_gt,thr,noise))
+    
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+    
+    output_path = os.path.join(output_path,output_filename)
+
+    return output_path
+
 def getResultsPath(output_filename):
     output_path = os.getcwd()
     output_path = os.path.dirname(output_path)
     output_path = os.path.join(output_path,'test/output/Results/'+ output_filename) 
     return output_path
 
-def plotSignal(title, x):
+def plotSignal(title, x, xlabel, ylabel, path):
     plt.figure()
     plt.suptitle(title)
     plt.plot(x)
+    
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+    plt.savefig(path, bbox_inches='tight')
 
-def plotSpectrogram(title, x_fq, colorMap):
+
+def plotSpectrogram(title, x_fq, colorMap, xlabel, ylabel, barLabel,path):
 
     plt.figure()
     plt.suptitle(title)
     plt.pcolormesh(np.abs(x_fq), cmap = colorMap)
-
-    plt.colorbar()
     
-def plotDOA(azimuth, elevation):
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(barLabel)
+    
+    plt.savefig(path, bbox_inches='tight')
+
+    
+def plotDOA(AziTitle,EleTitle, azimuth, elevation, xlabel, ylabel, barLabel_azi, barLabel_ele, AziPath, ElePath):
     #Plot Azimuth
     plt.figure()
-    plt.suptitle('DOA: Azimuth')
+    plt.suptitle(AziTitle)
     plt.pcolormesh(np.abs(azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
 
-    plt.colorbar()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(barLabel_azi)
+    
+    plt.savefig(AziPath, bbox_inches='tight')
     
     #Plot Elevation
     plt.figure()
-    plt.suptitle('DOA: Elevation')
+    plt.suptitle(EleTitle)
     plt.pcolormesh(np.abs(elevation), cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
 
-    plt.colorbar()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(barLabel_ele)
+    
+    plt.savefig(ElePath, bbox_inches='tight')
+    
     
 def to_dB(x, intensity):
     signal = np.abs(x.real) + 1e-100
@@ -183,7 +223,7 @@ def getMask(data, diffuseness, thr):
 def elMeanDev(data, diffuseness, threshold):
     
     mask = getMask(data, diffuseness, threshold)
-    plotSpectrogram('eleMask', mask, 'viridis');
+    #plotSpectrogram('eleMask', mask, 'viridis','testx', 'testy', 'testBar',getPlotPath('elmeandev.png', thr, noise));
     i=1
     aux = 0
     for x in range(np.shape(data)[0]):
@@ -208,7 +248,7 @@ def elMeanDev(data, diffuseness, threshold):
 def azMeanDev(data, diffuseness, threshold):
     
     mask = getMask(data, diffuseness, threshold)
-    plotSpectrogram('aziMask', mask, 'viridis');
+    #plotSpectrogram('aziMask', mask, 'viridis','testx', 'testy', 'testBar',getPlotPath('azmeandev.png', thr, noise));
     
     i=1
     aux_mean = np.array([[]])
@@ -241,12 +281,12 @@ def getMSE(data, diffuseness, gT, threshold):
     
     return MSE
 
-def plotHist2D(azi, ele, diffuseness, threshold):
+def plotHist2D(azi, ele, diffuseness, threshold, title, xlabel, ylabel, barLabel, path):
     
     mask = getMask(azi, diffuseness, threshold)
     
     plt.figure()
-    plt.suptitle('DOA Histogram 2D w/ Mask')
+    plt.suptitle(title)
     i=0
     azimuth = np.empty(1)
     elevation = np.empty(1)
@@ -263,10 +303,15 @@ def plotHist2D(azi, ele, diffuseness, threshold):
                     i = i+1
                 
     plt.hist2d(azimuth, elevation, bins= [360, 180])
-    plt.colorbar()
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(barLabel)
+    
+    plt.savefig(path+'_.png', bbox_inches='tight')
     
     plt.figure()
-    plt.suptitle('DOA Histogram 2D w/Mask')
+    plt.suptitle(title)
     nbins = [360, 180]
     H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
      
@@ -279,14 +324,18 @@ def plotHist2D(azi, ele, diffuseness, threshold):
      
     # Plot 2D histogram using pcolor
     plt.pcolormesh(xedges,yedges,Hmasked)
-    plt.xlabel('x')
-    plt.ylabel('y')
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Counts')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     
-def plotHist2DwMask(azi, ele):
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel(barLabel)
+    
+    plt.savefig(path, bbox_inches='tight')
+
+    
+def plotHist2DwMask(azi, ele, title, xlabel, ylabel, barLabel, path):
     plt.figure()
-    plt.suptitle('DOA Histogram 2D without mask')
+    plt.suptitle(title)
     i=0
     azimuth = np.empty(1)
     elevation = np.empty(1)
@@ -302,10 +351,10 @@ def plotHist2DwMask(azi, ele):
                 i = i+1
                 
     plt.hist2d(azimuth, elevation, bins= [360, 180])
-    plt.colorbar()
+    # Plot 2D histogram using pcolor
     
     plt.figure()
-    plt.suptitle('DOA Histogram 2D without mask')
+    plt.suptitle(title)
     nbins = [360, 180]
     H, xedges, yedges = np.histogram2d(azimuth,elevation,bins=nbins)
      
@@ -318,10 +367,13 @@ def plotHist2DwMask(azi, ele):
      
     # Plot 2D histogram using pcolor
     plt.pcolormesh(xedges,yedges,Hmasked)
-    plt.xlabel('x')
-    plt.ylabel('y')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Counts')
+    cbar.ax.set_ylabel(barLabel)
+    
+    plt.savefig(path, bbox_inches='tight')
+    
     
 def readGroundTruth(filename):
     file = filename.split(".")
@@ -402,7 +454,7 @@ def addNoise(data, noise):
     
     return data
 
-def getDoaResults(filename, thr, noise):
+def getDoaResults(filename, thr, noise, azimuth_gt, elevation_gt):
     bformat_pth = getBFormatAudioPath(filename)
     
     #Read audio file
@@ -411,13 +463,20 @@ def getDoaResults(filename, thr, noise):
     time, freq, stft = getFreqDomain(data,samplerate,'hann',256)
     
     doa, r, el, az = DOA(stft)
-    diffuseness = Diffuseness(stft, dt=10)
+    plotDOA('Azimuth', 'Elevation',az,el,'Time', 'Frequency', 'Azimuth (rad)','Elevation (rad)',
+            getPlotPath('azi_%f_%f.png'%(thr,noise), thr, noise,azimuth_gt, elevation_gt),getPlotPath('ele_%f_%f.png'%(thr,noise), thr, noise,azimuth_gt, elevation_gt) )
     
+    diffuseness = Diffuseness(stft, dt=10)
+    plotSpectrogram('Diffuseness', diffuseness, 'plasma_r','Time', 'Frequency', 'Diffuseness', getPlotPath('diff_%f_%f.png'%(thr,noise), thr, noise,azimuth_gt, elevation_gt))
+
 #    r, elevation_gt, azimuth_gt = cart2sph(0,5,0.06)
-    azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
+    #azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
 
     azMean, azDev = azMeanDev(az,diffuseness, thr)
     elMean, elDev = elMeanDev(el,diffuseness, thr)
+    
+    plotHist2D(az, el, diffuseness, thr,'DoA Histogram with Mask', 'Azimuth', 'Elevation', 'Number Samples',getPlotPath('DoAHist_%f_%f.png'%(thr,noise), thr, noise, azimuth_gt, elevation_gt))
+    plotHist2DwMask(az, el, 'DoA Histogram without Mask','Azimuth', 'Elevation', 'Number Samples',getPlotPath('DoAHist_wMask_%f_%f.png'%(thr,noise), thr, noise, azimuth_gt, elevation_gt))
     
     azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
     elMSE = getMSE(el,diffuseness, elevation_gt, thr)   
@@ -429,50 +488,71 @@ def getDoaResults(filename, thr, noise):
     MSE = [azMSE, elMSE]
     return MSE
     
-def PlotMSEVariables(mse_results, threshold, noise):
+def PlotMSEVariables(mse_results, threshold, noise,xlabel_thr, xlabel_nse,zlabel, AzMSEThrTitle,ElMSEThrTitle,AzMSENseTitle,ElMSENseTitle,wireframeTitle,azi_gt, ele_gt):
     plt.figure()
     plt.grid()
-    plt.suptitle('Azimuth MSE respect Threshold')
+    plt.suptitle(AzMSEThrTitle)
     for nse in range (len(noise)):
         thr_az = mse_results[:,nse,0]
         plt.plot(threshold,thr_az,label="Noise %f"%(noise[nse]))
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-
+    plt.xlabel(xlabel_thr)
+    plt.ylabel(zlabel)
+    
+    plt.savefig(getPlotPath('Azi_MSE_noise.png', -256, -256,azi_gt, ele_gt), bbox_inches='tight')
+ 
     plt.figure()
     plt.grid()
-    plt.suptitle('Elevation MSE respect Threshold')
+    plt.suptitle(ElMSEThrTitle)
     for nse in range (len(noise)):
         thr_el = mse_results[:,nse,1]
         plt.plot(threshold,thr_el,label="Noise %f"%(noise[nse]))
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    
+    plt.xlabel(xlabel_thr)
+    plt.ylabel(zlabel)
+    plt.savefig(getPlotPath('Ele_MSE_noise.png', -256, -256,azi_gt, ele_gt), bbox_inches='tight')
 
     plt.figure()
     plt.grid()
-    plt.suptitle('Azimuth MSE respect Noise')
+    plt.suptitle(AzMSENseTitle)
     for thr in range (len(threshold)):
         noise_az = mse_results[thr,:,0]
         plt.plot(noise,noise_az,label="Threshold %f"%(threshold[thr]))
         plt.xscale('log')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    plt.xlabel(xlabel_nse)
+    plt.ylabel(zlabel)
+    plt.savefig(getPlotPath('Azi_MSE_Threshold.png', -256, -256,azi_gt, ele_gt), bbox_inches='tight')
 
     plt.figure()
     plt.grid()
-    plt.suptitle('Elevation MSE respect Noise')
+    plt.suptitle(ElMSENseTitle)
     for thr in range (len(threshold)):
         noise_el = mse_results[thr,:,1]
         plt.plot(noise,noise_el,label="Threshold %f"%(threshold[thr]))
         plt.xscale('log')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-    
+    plt.xlabel(xlabel_nse)
+    plt.ylabel(zlabel)
+    plt.savefig(getPlotPath('Ele_MSE_Threshold.png', -256, -256,azi_gt, ele_gt), bbox_inches='tight')
+
     from mpl_toolkits.mplot3d import axes3d    
     
     th, ns = np.meshgrid(threshold, noise)
     
     # Plot a basic wireframe.
     fig = plt.figure()
+    plt.suptitle(wireframeTitle)
     ax = fig.gca(projection='3d')
     ax.invert_yaxis()
     wireframe = ax.plot_wireframe(np.transpose(th),np.transpose(ns), mse_results[:,:,0])
+    ax.set_xlabel(xlabel_thr)
+    ax.set_ylabel(xlabel_nse)
+    ax.set_zlabel(zlabel)
+    
+    plt.savefig(getPlotPath('MSE_Threshold_noise.png', -256, -256,azi_gt, ele_gt), bbox_inches='tight')
+
     plt.show()
 
 def cart2sph(x,y,z):
@@ -487,7 +567,7 @@ def cart2sph(x,y,z):
     
 #%% Get Path and read audio file
 
-filename = 'drums_FUMA_FUMA(-160, 0).wav';
+filename = 'drums_FUMA_FUMA_r_False(-180, 0).wav';
 bformat_pth = getBFormatAudioPath(filename)
 
 #Read audio file
@@ -521,20 +601,20 @@ X_fq_db = to_dB(stft[1,:,:], 'N')
 Y_fq_db = to_dB(stft[2,:,:], 'N')
 Z_fq_db = to_dB(stft[3,:,:], 'N')
 
-plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
-plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
-plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
-plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
+plotSpectrogram('Spectrogram W', W_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test.png', thr, noise))
+plotSpectrogram('Spectrogram X', X_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test2.png', thr, noise))
+plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test3.png', thr, noise))
+plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test4.png', thr, noise))
 
 #%% Compute the intensity vector and DOA
 
 doa, r, el, az = DOA(stft)
-plotDOA(az,el)
+#plotDOA('Azi', 'Ele',az,el, 'testx', 'testy', 'testBar',getPlotPath('azi.png', thr, noise),getPlotPath('ele.png', thr, noise))
 
 #%% Diffuseness computation
 
 diffuseness = Diffuseness(stft, dt=10)
-plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
+#plotSpectrogram('Diffuseness', diffuseness, 'plasma_r', 'testx', 'testy', 'testBar',getPlotPath('diff.png', thr, noise))
 
 #%%
 
@@ -551,16 +631,19 @@ elMSE = getMSE(el,diffuseness, elevation_gt, thr)
 
 #%%
 
-plotHist2D(az, el, diffuseness, thr)
-plotHist2DwMask(az, el)
+#plotHist2D(az, el, diffuseness, thr,'title', 'testx', 'testy', 'testBar',getPlotPath('hist.png', thr, noise))
+#plotHist2DwMask(az, el, 'title','testx', 'testy', 'testBar',getPlotPath('hist2.png', thr, noise))
 
 #%%
 file = filename.split(".")
 resultsFilename = file[0] + '_thr'+ str(thr) + '_nse' + str(noise)+'.wav'
-writeResults(resultsFilename, azimuth_gt, elevation_gt, reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
+writeResults(resultsFilename, azimuth_gt, elevation_gt, reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thr, noise)
 
 #%%
+filename = 'drums_FUMA_FUMA_r_True(-30, -29).wav';
 
+azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
+ #%%
 thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
 index=0
@@ -568,7 +651,10 @@ mse_results = np.zeros((np.size(thresholds), np.size(noise),2))
 for thr in range (len(thresholds)):
     for nse in range (len(noise)):
         print(index)
-        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse])
+        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse], 1.04, -0.52)
         index = index +1
-        
-PlotMSEVariables(mse_results, thresholds, noise)      
+       
+PlotMSEVariables(mse_results, thresholds, noise, 'Diffuseness Threshold', 'Noise Level', 'MSE',
+                 'Azimuth MSE based on Diffuseness Thr.','Elevation MSE based on Diffuseness Thr.', 
+                 'Azimuth MSE based on Noise Level','Elevation MSE based on Noise Level',
+                 'MSE based on Diffuseness Thr. and Noise', 1.04, -0.52)

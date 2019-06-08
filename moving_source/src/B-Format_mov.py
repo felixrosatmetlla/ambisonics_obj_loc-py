@@ -143,9 +143,10 @@ def groundTruth(azi, ele,filenm):
 
 
 #%% Input variables by user
+rev = False
 
-azimuth = [0, np.pi/4, np.pi/2, np.pi, 0, 0]
-elevation = [0,0,0,0,0,0]
+azimuth = [np.pi/4,np.pi/2, 3*np.pi/4, 5*np.pi/4, 3*np.pi/2, 7*np.pi/4]
+elevation = [-np.pi/2,-np.pi/3,-np.pi/6,np.pi/6,np.pi/3,np.pi/2]
 time = [0, 8820, 17640, 26460, 35280, 44100]
 amb_ord = 1
 
@@ -153,7 +154,7 @@ norm = 'FUMA'
 ch_order = 'FUMA'
 filename = 'drums.wav'
 
-output_filename = 'drums_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth[0]*180/math.pi, elevation[0]*180/math.pi)
+output_filename = 'drums_%s_%s_r_%s(%d, %d).wav'%(norm,ch_order,rev,azimuth[0]*180/math.pi, elevation[0]*180/math.pi)    
 
 #%% Get Path and read audio file
 
@@ -179,17 +180,17 @@ interpEle = angleInterp(elevation, time)
 
 plt.plot(interpAzi)
 #%%
-rev = True
-rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'
+rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/AudioBooth/Soundfield/ls7.wav'
 
-#if rev == True:
-reverbData, revSamplerate = sf.read(rev_file_path)
-reverbW = reverbData[:,0]
+if rev == True:
+    reverbData, revSamplerate = sf.read(rev_file_path)
+    reverbW = reverbData[:,0]
 
-W,X,Y,Z = toAmbisonicsMovReverb(data,norm_fact, interpAzi, interpEle,reverbW)
+    W,X,Y,Z = toAmbisonicsMovReverb(data,norm_fact, interpAzi, interpEle,reverbW)
 #
 ##Apply the normalization to the audio channels
-#W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)
+elif rev == False:
+    W,X,Y,Z = toAmbisonics(data,norm_fact, interpAzi, interpEle)
     
 #Order the channels in the desired format      
 audio = order_channels(ch_order,W,X,Y,Z)

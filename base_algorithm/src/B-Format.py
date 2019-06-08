@@ -151,12 +151,12 @@ def cart2sph(x,y,z):
 rev = True
 
 if rev == True:
-    rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls7.wav'
-    r, elevation, azimuth = cart2sph(-4.7,-1.71,0.06)
+    rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/Vislab/Soundfield/ls7.wav'
+    r, elevation, azimuth = cart2sph(1.26,-0.73,-0.84)
 
 elif rev == False:
     azimuth = np.pi/4
-    elevation = 0
+    elevation = -np.pi/4
     
 
 amb_ord = 1
@@ -165,7 +165,7 @@ norm = 'FUMA'
 ch_order = 'FUMA'
 filename = 'drums.wav'
 
-output_filename = 'drums_%s_%s(%d, %d).wav'%(norm,ch_order,azimuth*180/math.pi, elevation*180/math.pi)    
+output_filename = 'drums_%s_%s_r_%s(%d, %d).wav'%(norm,ch_order,rev,azimuth*180/math.pi, elevation*180/math.pi)    
 
 #%% Get Path and read audio file
 
