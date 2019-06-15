@@ -151,7 +151,7 @@ def cart2sph(x,y,z):
 rev = True
 
 if rev == True:
-    rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/Vislab/Soundfield/ls7.wav'
+    rev_file_path = '/Users/felixrosatmetlla/Desktop/TFG/ambisonics_obj_loc-py/S3A/MainChurch/Soundfield/ls1.wav'
     r, elevation, azimuth = cart2sph(1.26,-0.73,-0.84)
 
 elif rev == False:
@@ -185,12 +185,12 @@ n_ch = num_channels(amb_ord)
 norm_fact = norm_factors(n_ch,amb_ord,norm)
       
 
-#%%
+#%% Encode Audio to Ambisonics
 
 if rev == True:
     reverbData, revSamplerate = sf.read(rev_file_path)
     W,X,Y,Z = toAmbisonicsReverb(data,reverbData)
-    rt_60 = acoustics.room.t60_impulse(rev_file_path, acoustics.bands.octave(63, 8000))
+    rt_60 = acoustics.room.t60_impulse(rev_file_path, acoustics.bands.octave(500, 2000))
 
 elif rev == False:
     W,X,Y,Z = toAmbisonics(data,norm_fact)

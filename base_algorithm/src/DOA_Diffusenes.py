@@ -87,7 +87,7 @@ def plotDOA(AziTitle,EleTitle, azimuth, elevation, xlabel, ylabel, barLabel_azi,
     #Plot Azimuth
     plt.figure()
     plt.suptitle(AziTitle)
-    plt.pcolormesh(np.abs(azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
+    plt.pcolormesh(azimuth, cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -100,7 +100,7 @@ def plotDOA(AziTitle,EleTitle, azimuth, elevation, xlabel, ylabel, barLabel_azi,
     #Plot Elevation
     plt.figure()
     plt.suptitle(EleTitle)
-    plt.pcolormesh(np.abs(elevation), cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
+    plt.pcolormesh(elevation, cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -563,87 +563,13 @@ def cart2sph(x,y,z):
     
     return r, elev, az        
     
+
+#%% Get all resukts for one audio
     
-    
-#%% Get Path and read audio file
-
-filename = 'drums_FUMA_FUMA_r_False(-180, 0).wav';
-bformat_pth = getBFormatAudioPath(filename)
-
-#Read audio file
-data, samplerate = sf.read(bformat_pth)
-
-thr = 0.1
-noise = 1e-5
-
-data = addNoise(data,noise)
-
-#%%
-#We get each channel individually
-
-W = data[:,0]
-X = data[:,1]
-Y = data[:,2]
-Z = data[:,3]
-
-plotSignal('Waveform W',W)
-plotSignal('Waveform X',X)
-plotSignal('Waveform Y',Y)
-plotSignal('Waveform Z',Z)
-
-#%% We use STFT to get frequency domain of each channel
-
-time, freq, stft = getFreqDomain(data,samplerate,'hann',256)
-
-#plotSpectrogram
-W_fq_db = to_dB(stft[0,:,:], 'N')
-X_fq_db = to_dB(stft[1,:,:], 'N')
-Y_fq_db = to_dB(stft[2,:,:], 'N')
-Z_fq_db = to_dB(stft[3,:,:], 'N')
-
-plotSpectrogram('Spectrogram W', W_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test.png', thr, noise))
-plotSpectrogram('Spectrogram X', X_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test2.png', thr, noise))
-plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test3.png', thr, noise))
-plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis', 'testx', 'testy', 'testBar',getPlotPath('test4.png', thr, noise))
-
-#%% Compute the intensity vector and DOA
-
-doa, r, el, az = DOA(stft)
-#plotDOA('Azi', 'Ele',az,el, 'testx', 'testy', 'testBar',getPlotPath('azi.png', thr, noise),getPlotPath('ele.png', thr, noise))
-
-#%% Diffuseness computation
-
-diffuseness = Diffuseness(stft, dt=10)
-#plotSpectrogram('Diffuseness', diffuseness, 'plasma_r', 'testx', 'testy', 'testBar',getPlotPath('diff.png', thr, noise))
-
-#%%
-
-#r, elevation_gt, azimuth_gt = cart2sph(-4.7,-1.71,0.06)
-azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
-
-#%%
-
-azMean, azDev = azMeanDev(az,diffuseness, thr)
-elMean, elDev = elMeanDev(el,diffuseness, thr)
-
-azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
-elMSE = getMSE(el,diffuseness, elevation_gt, thr)
-
-#%%
-
-#plotHist2D(az, el, diffuseness, thr,'title', 'testx', 'testy', 'testBar',getPlotPath('hist.png', thr, noise))
-#plotHist2DwMask(az, el, 'title','testx', 'testy', 'testBar',getPlotPath('hist2.png', thr, noise))
-
-#%%
-file = filename.split(".")
-resultsFilename = file[0] + '_thr'+ str(thr) + '_nse' + str(noise)+'.wav'
-writeResults(resultsFilename, azimuth_gt, elevation_gt, reverb, azMean, azDev, elMean, elDev, azMSE, elMSE, thr, noise)
-
-#%%
 filename = 'drums_FUMA_FUMA_r_True(-30, -29).wav';
 
 azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
- #%%
+
 thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
 index=0

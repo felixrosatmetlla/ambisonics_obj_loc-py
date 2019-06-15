@@ -82,7 +82,7 @@ def plotDOA(AziTitle,EleTitle, azimuth, elevation, xlabel, ylabel, barLabel_azi,
     #Plot Azimuth
     plt.figure()
     plt.suptitle(AziTitle)
-    plt.pcolormesh(np.abs(azimuth), cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
+    plt.pcolormesh(azimuth, cmap = 'hsv', vmin = -np.pi, vmax = np.pi)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -95,7 +95,7 @@ def plotDOA(AziTitle,EleTitle, azimuth, elevation, xlabel, ylabel, barLabel_azi,
     #Plot Elevation
     plt.figure()
     plt.suptitle(EleTitle)
-    plt.pcolormesh(np.abs(elevation), cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
+    plt.pcolormesh(elevation, cmap = 'viridis',  vmin = -np.pi/2, vmax = np.pi/2)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -681,193 +681,16 @@ def movErrors(W, azs, els, interpAzi, interpEle, N, xlabel, ylabel,azi_gt, ele_g
     
     return errors_azi, errors_ele
 
-#%% Get Path and read audio file
-
-filename = 'drums_FUMA_FUMA(0, 0).wav';
-bformat_pth = getBFormatAudioPath(filename)
-
-#Read audio file
-data, samplerate = sf.read(bformat_pth)
-
-data = addNoise(data,1e-5)
-
-#We get each channel individually
-
-W = data[:,0]
-X = data[:,1]
-Y = data[:,2]
-Z = data[:,3]
-
-plotSignal('Waveform W',W)
-plotSignal('Waveform X',X)
-plotSignal('Waveform Y',Y)
-plotSignal('Waveform Z',Z)
-
-#%% We use STFT to get frequency domain of each channel
-
-freq, time, stft = getFreqDomain(data,samplerate,'hann',256)
-
-#plotSpectrogram
-W_fq_db = to_dB(stft[0,:,:], 'N')
-X_fq_db = to_dB(stft[1,:,:], 'N')
-Y_fq_db = to_dB(stft[2,:,:], 'N')
-Z_fq_db = to_dB(stft[3,:,:], 'N')
-
-plotSpectrogram('Spectrogram W', W_fq_db,'viridis')
-plotSpectrogram('Spectrogram X', X_fq_db,'viridis')
-plotSpectrogram('Spectrogram Y', Y_fq_db,'viridis')
-plotSpectrogram('Spectrogram Z', Z_fq_db,'viridis')
 #%%
+filename = 'drums_FUMA_FUMA_r_True(180, 45).wav';
 
-azimuth = [0, np.pi/4, np.pi/2, np.pi, 0, 0]
-elevation = [0,0,0,0,0,0]
+azimuth = [np.pi,-np.pi/4,3*np.pi/4,-3*np.pi/4,5*np.pi/4,0]
+elevation = [np.pi/4,-np.pi/2,np.pi/7,np.pi/3,-np.pi/2,0]
 time = [0, 8820, 17640, 26460, 35280, 44100]
+
 interpAzi = angleInterp(azimuth, time)
 interpEle = angleInterp(elevation, time)
-
-plt.figure()  
-plt.plot(interpAzi)
-#%%
-doas, rs, els, azs = DOA(stft)
-#plotDOA(azs,els)
-
-N = stft.shape[2]
-
-mov_azi = np.zeros(N)
-mov_azi = np.mean(azs, axis=0)
-plt.figure()     
-plt.plot(mov_azi)
-
-mov_els = np.zeros(N)
-mov_els = np.mean(els, axis=0)
-plt.figure()     
-plt.plot(mov_els)
-
-#%%
-tempEnergy = np.empty(math.ceil(len(W)/128))
-i = 0
-for x in range(0,len(W),128):
-    if x==0:
-        tempEnergy[i] = np.mean(np.power(W[x:128],2))
     
-    elif x==len(W)-128:
-        tempEnergy[i] = np.mean(np.power(W[x:len(W)],2))
-    
-    else:
-        tempEnergy[i] = np.mean(np.power(W[x-128:x+128],2))
-    
-    i = i+1
-
-plt.plot(tempEnergy)
-#%%
-GTinterpAzi = np.empty(math.ceil(44100/128))
-i = 0
-for x in range (0,len(interpAzi),128):
-    if x==0:
-        GTinterpAzi[i] = np.mean(interpAzi[x:128])
-    
-    elif x==len(interpAzi)-128:
-        GTinterpAzi[i] = np.mean(interpAzi[x:len(interpAzi)])
-    
-    else:
-        GTinterpAzi[i] = np.mean(interpAzi[x-128:x+128])
-    
-    i = i+1
-    
-errors_azi = np.empty(len(mov_azi)) 
-for x in range (0,len(tempEnergy)):
-    if(tempEnergy[x] > 0.001):
-        if(x>len(GTinterpAzi)-1):
-            errors_azi[x] = np.abs(0-mov_azi[x])
-        else:
-            errors_azi[x] = np.abs(GTinterpAzi[x]-mov_azi[x])
-    else:
-        errors_azi[x] = np.nan
-        
-plt.figure()
-plt.plot(errors_azi)
-
-#%%
-GTinterpEle = np.empty(math.ceil(44100/128))
-i = 0
-for x in range (0,len(interpEle),128):
-    if x==0:
-        GTinterpEle[i] = np.mean(interpEle[x:128])
-    
-    elif x==len(interpAzi)-128:
-        GTinterpEle[i] = np.mean(interpEle[x:len(interpAzi)])
-    
-    else:
-        GTinterpEle[i] = np.mean(interpEle[x-128:x+128])
-    
-    i = i+1
-    
-#threshold => peak %
-errors_ele = np.empty(len(mov_els)) 
-for x in range (0,len(tempEnergy)):
-    if(tempEnergy[x] > 0.001):
-        if(x>len(GTinterpEle)-1):
-            errors_ele[x] = np.abs(0-mov_els[x])
-        else:
-            errors_ele[x] = np.abs(GTinterpEle[x]-mov_els[x])
-    else:
-        errors_ele[x] = np.nan
-    
-plt.figure()
-plt.plot(errors_ele)
-
-#%% Compute the intensity vector and DOA
-
-K = stft.shape[1]
-N = stft.shape[2]
-
-
-
-#for t in range(N):
-#    if(t<10):
-#        doas, rs, els, azs = DOA(stft[:,:,0:(t+10)])
-#    elif(t>N-10):
-#        doas, rs, els, azs = DOA(stft[:,:,(t-10):(N-1)])
-#    else:
-#        doas, rs, els, azs = DOA(stft[:,:,(t-10):(t+10)])
-#    plotDOA(azs,els)
-
-#%% Diffuseness computation
-
-diffuseness = Diffuseness(stft, dt=10)
-plotSpectrogram('Diffuseness', diffuseness, 'plasma_r')
-
-#%%
-
-azimuth_gt, elevation_gt = readGroundTruth(filename)
-
-thr = 0.1
-
-azMean, azDev = azMeanDev(az,diffuseness, thr)
-elMean, elDev = elMeanDev(el,diffuseness, thr)
-
-azMSE = getMSE(az,diffuseness, azimuth_gt, thr)
-elMSE = getMSE(el,diffuseness, elevation_gt, thr)
-
-#%%
-
-plotHist2D(az, el, diffuseness, thr)
-plotHist2DwMask(az, el)
-
-#%%
-
-writeResults('drums_FUMA_FUMA(180, 0)_%d.wav'%(thr), azimuth_gt, elevation_gt, azMean, azDev, elMean, elDev, azMSE, elMSE, thr)
-
-#%%
-filename = 'drums_FUMA_FUMA_r_False(45, -90).wav';
-
-#azimuth_gt, elevation_gt, reverb = readGroundTruth(filename)
-azimuth = [np.pi/4,np.pi/2, 3*np.pi/4, 5*np.pi/4, 3*np.pi/2, 7*np.pi/4]
-elevation = [-np.pi/2,-np.pi/3,-np.pi/6,np.pi/6,np.pi/3,np.pi/2]
-time = [0, 8820, 17640, 26460, 35280, 44100]
-interpAzi = angleInterp(azimuth, time)
-interpEle = angleInterp(elevation, time)
-
 thresholds = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
 noise = [1e-6, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
 index=0
@@ -875,10 +698,10 @@ mse_results = np.zeros((np.size(thresholds), np.size(noise),2))
 for thr in range (len(thresholds)):
     for nse in range (len(noise)):
         print(index)
-        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse], 45, -90, interpAzi, interpEle)
+        mse_results[thr,nse, :] = getDoaResults(filename,thresholds[thr],noise[nse], 1800, 450, interpAzi, interpEle)
         index = index +1
 
 PlotMSEVariables(mse_results, thresholds, noise, 'Diffuseness Threshold', 'Noise Level', 'MSE',
                  'Azimuth MSE based on Diffuseness Thr.','Elevation MSE based on Diffuseness Thr.', 
                  'Azimuth MSE based on Noise Level','Elevation MSE based on Noise Level',
-                 'MSE based on Diffuseness Thr. and Noise', 45, -90)
+                 'MSE based on Diffuseness Thr. and Noise', 1800, 450)
